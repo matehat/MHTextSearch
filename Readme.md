@@ -1,6 +1,6 @@
 ## Introduction
 
-A fast & minimalist embedded full-text indexing library, written in Objective-C, built on top of [Objective-LevelDB][2].
+A fast & minimalist embedded full-text indexing library, written in Objective-C, built on top of [Objective-LevelDB][2]. *It is still in development, obviously. You're welcomed to contribute if you find the project interesting!*
 
 ### Installation
 
@@ -105,7 +105,7 @@ If giving blocks for specifying behavior is not your thing, you can also overrid
 * `-[MHTextIndex getIndexInfoForObject:andIdentifier:]` which, by default uses the `indexer` block
 * `-[MHTextIndex compareResultItem:withItem:reversed:]` which is used to order the search result set
 
-##### Using with Core Data
+### Using with Core Data
 
 You can use `NSManagedObject` lifecycle methods to trigger changes to the text index. The following example
 was taken from
