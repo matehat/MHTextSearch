@@ -10,7 +10,7 @@ By far, the easiest way to integrate this library in your project is by using [C
 
 2. In your Podfile, add the line (until it has been added to cocoapods main repo)
 
-        pod 'MHTextSearch', :git => "https://github.com/matehat/MHTextSearch.git"
+        pod 'MHTextSearch'
 
 3. Run `pod install`
 
