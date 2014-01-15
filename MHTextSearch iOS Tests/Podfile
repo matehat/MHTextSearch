@@ -1,0 +1,10 @@
+workspace '../MHTextSearch'
+inhibit_all_warnings!
+
+xcodeproj 'MHTextSearch iOS Tests'
+platform :ios, '7.0'
+
+link_with "iPhone Performance Test", "iOS Tests"
+
+pod "MHTextSearch", :path => "../MHTextSearch.podspec"
+pod "BlocksKit"
