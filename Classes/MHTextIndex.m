@@ -492,7 +492,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, NSU
         
         [searchResult enumerateKeysAndObjectsUsingBlock:^(NSData *key, MHSearchResultItem *obj, BOOL *stop) {
             NSData *indexedObjectMetaData = [snapshot objectForKey:indexKeyForIndexedObject(key, IndexedObjectKeyTypeMeta)];
-            NSDictionary *indexedObjectMeta = [NSJSONSerialization JSONObjectWithData:indexedObjectMetaData options:0 error:NULL];
+            NSDictionary *indexedObjectMeta = [NSKeyedUnarchiver unarchiveObjectWithData:indexedObjectMetaData];
             obj.weight = [indexedObjectMeta[@"weight"] floatValue];
             obj.context = indexedObjectMeta[@"ctx"];
         }];
