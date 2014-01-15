@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		1CF2FA2998334AD9A4174087 /* libPods.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 82E0C388E98A424894836C27 /* libPods.a */; };
 		57924DFA4C1040C9BCF8163A /* libPods.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 82E0C388E98A424894836C27 /* libPods.a */; };
+		D038FA8E1886D30700C114DE /* texts in Resources */ = {isa = PBXBuildFile; fileRef = D038FA8D1886D30700C114DE /* texts */; };
+		D038FA8F1886D30700C114DE /* texts in Resources */ = {isa = PBXBuildFile; fileRef = D038FA8D1886D30700C114DE /* texts */; };
 		D0CC9A3B188605EE00203AC3 /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D0CC9A3A188605EE00203AC3 /* XCTest.framework */; };
 		D0CC9A3D188605EE00203AC3 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D0CC9A3C188605EE00203AC3 /* Foundation.framework */; };
 		D0CC9A3F188605EE00203AC3 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D0CC9A3E188605EE00203AC3 /* UIKit.framework */; };
@@ -30,6 +32,7 @@
 /* Begin PBXFileReference section */
 		361D0CED83EA416F99714314 /* Pods.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Pods.xcconfig; path = Pods/Pods.xcconfig; sourceTree = "<group>"; };
 		82E0C388E98A424894836C27 /* libPods.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libPods.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		D038FA8D1886D30700C114DE /* texts */ = {isa = PBXFileReference; lastKnownFileType = folder; path = texts; sourceTree = "<group>"; };
 		D0CC9A37188605EE00203AC3 /* iOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "iOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0CC9A3A188605EE00203AC3 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
 		D0CC9A3C188605EE00203AC3 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -86,6 +89,7 @@
 		D0CC9A2C188605DB00203AC3 = {
 			isa = PBXGroup;
 			children = (
+				D038FA8D1886D30700C114DE /* texts */,
 				D0CC9A87188652CA00203AC3 /* Classes */,
 				D0CC9A40188605EE00203AC3 /* iOS Tests */,
 				D0CC9A5A18864CA100203AC3 /* iPhone Performance Test */,
@@ -240,6 +244,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D038FA8F1886D30700C114DE /* texts in Resources */,
 				D0CC9A45188605EE00203AC3 /* InfoPlist.strings in Resources */,
 				D0CC9A5018863ADB00203AC3 /* Names.txt in Resources */,
 			);
@@ -250,6 +255,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				D0CC9A5F18864CA100203AC3 /* InfoPlist.strings in Resources */,
+				D038FA8E1886D30700C114DE /* texts in Resources */,
 				D0CC9A6718864CA100203AC3 /* Images.xcassets in Resources */,
 				D0CC9A8018864CC400203AC3 /* Names.txt in Resources */,
 			);
@@ -415,7 +421,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INFOPLIST_FILE = "iOS Tests/iOS Tests-Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
-				ONLY_ACTIVE_ARCH = YES;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = iphoneos;
 				WRAPPER_EXTENSION = xctest;
@@ -517,7 +523,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "C7376379-A4EA-4404-8ECE-BF758F4B0D52";
-				SDKROOT = iphoneos7.1;
+				SDKROOT = iphoneos;
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -565,7 +571,7 @@
 				LLVM_LTO = NO;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE = "C7376379-A4EA-4404-8ECE-BF758F4B0D52";
-				SDKROOT = iphoneos7.1;
+				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;
 				WRAPPER_EXTENSION = app;
 			};

@@ -9,7 +9,117 @@
 #import <MHTextSearch.h>
 #import "AppDelegate.h"
 
-@implementation AppDelegate
+@implementation AppDelegate {
+    
+    MHTextIndex *textIndex;
+    NSMutableArray *texts;
+    NSMutableArray *textPaths;
+}
+
+//#define CREATE_NEW_INDEX
+
+CGFloat sizeOfIndexedTexts = 10.0;
+
+- (void)measureWithSize:(CGFloat)size {
+    texts = [NSMutableArray arrayWithCapacity:2000];
+    textPaths = [NSMutableArray arrayWithCapacity:2000];
+    
+#ifdef CREATE_NEW_INDEX
+    textIndex = [MHTextIndex textIndexInLibraryWithName:@"textIndex"];
+    [textIndex deleteFromDisk];
+#endif
+    
+    textIndex = [MHTextIndex textIndexInLibraryWithName:@"textIndex"];
+    textIndex.indexingQueue.maxConcurrentOperationCount = 2;
+    
+    [textIndex setIdentifier:^NSData *(id object){
+        NSUInteger indexVal = [object integerValue];
+        return [NSData dataWithBytes:&indexVal length:sizeof(NSUInteger)];
+    }];
+    
+    __weak AppDelegate *_wself = self;
+    [textIndex setObjectGetter:^id(NSData *identifier){
+        __strong AppDelegate *_sself = _wself;
+        NSUInteger nameIdx = 0;
+        [identifier getBytes:&nameIdx];
+        return _sself->textPaths[nameIdx];
+    }];
+    [textIndex setIndexer:^MHIndexedObject *(id object, NSData *key){
+        MHIndexedObject *frag = [MHIndexedObject new];
+        NSUInteger idx = [object integerValue];
+        __strong AppDelegate *_sself = _wself;
+        frag.identifier = key;
+        
+        NSString * childPath = _sself->textPaths[idx];
+        NSString *textContent = [NSString stringWithContentsOfFile:childPath
+                                                          encoding:NSUTF8StringEncoding
+                                                             error:NULL];
+        frag.strings = @[ textContent ];
+        frag.context = @{ @"path": childPath };
+        return frag;
+    }];
+
+#ifdef CREATE_NEW_INDEX
+    NSString *textsDirPath = [[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"texts"];
+    if (!textsDirPath)
+        return;
+    
+    NSFileManager *fm = [NSFileManager defaultManager];
+    NSDirectoryEnumerator *enumerator = [fm enumeratorAtPath:textsDirPath];
+    NSString *childPath;
+    NSUInteger totalSize, count = 0;
+    
+    CFAbsoluteTime t1 = CFAbsoluteTimeGetCurrent();
+    for (id child in enumerator) {
+        if ([child hasSuffix:@".txt"]) {
+            NSError *error;
+            childPath = [textsDirPath stringByAppendingPathComponent:child];
+            NSString *textContent = [NSString stringWithContentsOfFile:childPath
+                                                              encoding:NSUTF8StringEncoding
+                                                                 error:&error];
+            if (error) {
+                continue;
+            } else {
+                [textPaths addObject:childPath];
+                [textIndex indexObject:@(count)];
+                
+                count++;
+                totalSize += [textContent lengthOfBytesUsingEncoding:[textContent fastestEncoding]];
+                if (totalSize >= size*1024*1024)
+                    break;
+            }
+        }
+    }
+    
+    NSLog(@"Total bytes for %d files: %d", count, totalSize);
+    
+    [textIndex.indexingQueue waitUntilAllOperationsAreFinished];
+    NSLog(@"Indexing %d texts happened in %f seconds", textPaths.count, CFAbsoluteTimeGetCurrent() - t1);
+    
+    double delayInSeconds = size*2;
+    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
+    dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+#endif
+        CFAbsoluteTime t2;
+        CFAbsoluteTime minTime = CGFLOAT_MAX;
+        
+        NSArray *results;
+        for (int i=0; i<20; i++) {
+            t2 = CFAbsoluteTimeGetCurrent();
+            results = [textIndex searchResultForKeyword:@"hat" options:0];
+            minTime = MIN(CFAbsoluteTimeGetCurrent() - t2, minTime);
+        }
+        NSLog(@"Search yielding %d results, over %d files, happened in %f seconds\n\n", results.count, textPaths.count, minTime);
+        
+        double delayInSeconds = 0.5;
+        dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
+        dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+            exit(0);
+        });
+#ifdef CREATE_NEW_INDEX
+    });
+#endif
+}
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
     self.window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
@@ -17,52 +127,13 @@
     self.window.backgroundColor = [UIColor whiteColor];
     [self.window makeKeyAndVisible];
     
-    MHTextIndex *index;
-    NSArray *names;
+    double delayInSeconds = 0.1;
+    dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
+    dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
+        [self measureWithSize:sizeOfIndexedTexts];
+    });
     
-    index = [MHTextIndex textIndexInLibraryWithName:@"testIndex"];
-    [index deleteFromDisk];
-    
-    index = [MHTextIndex textIndexInLibraryWithName:@"testIndex"];
-    
-    NSString *path = [[NSBundle mainBundle] pathForResource:@"Names" ofType:@"txt"];
-    NSString *namesRaw = [NSString stringWithContentsOfFile:path
-                                                   encoding:NSUTF8StringEncoding
-                                                      error:NULL];
-    names = [namesRaw componentsSeparatedByString:@"\n"];
-    
-    [index setIdentifier:^NSData *(id object){
-        NSUInteger indexVal = [object integerValue];
-        return [NSData dataWithBytes:&indexVal length:sizeof(NSUInteger)];
-    }];
-    [index setObjectGetter:^id(NSData *identifier){
-        NSUInteger nameIndex = 0;
-        [identifier getBytes:&nameIndex];
-        return names[nameIndex];
-    }];
-    [index setFragmenter:^MHTextFragment *(id object, NSData *key){
-        MHTextFragment *frag = [MHTextFragment new];
-        frag.identifier = key;
-        frag.indexedStrings = @[[names objectAtIndex:[object integerValue]]];
-        return frag;
-    }];
-    
-    CFAbsoluteTime t1 = CFAbsoluteTimeGetCurrent();
-    [names enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
-        [index indexObject:@(idx) error:NULL];
-    }];
-    [index.indexingQueue waitUntilAllOperationsAreFinished];
-    NSLog(@"Indexing %lu names happened in %f seconds", (unsigned long)names.count, CFAbsoluteTimeGetCurrent() - t1);
-    
-    CFAbsoluteTime t2 = CFAbsoluteTimeGetCurrent();
-    NSArray *results = [index searchResultForKeyword:@"ja" options:0];
-    NSLog(@"Search over %lu names happened in %f seconds", (unsigned long)names.count, CFAbsoluteTimeGetCurrent() - t2);
-    
-    NSAssert(results.count == 8, @"The search should yield exactly 8 results.");
-    
-//    [index deleteFromDisk];
-    return YES;
-}
+    return YES;}
 
 - (void)applicationWillResignActive:(UIApplication *)application
 {
