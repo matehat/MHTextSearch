@@ -105,7 +105,7 @@ If giving blocks for specifying behavior is not your thing, you can also overrid
 * `-[MHTextIndex getIndexInfoForObject:andIdentifier:]` which, by default uses the `indexer` block
 * `-[MHTextIndex compareResultItem:withItem:reversed:]` which is used to order the search result set
 
-##### Using with Core Data
+### Using with Core Data
 
 You can use `NSManagedObject` lifecycle methods to trigger changes to the text index. The following example
 was taken from
