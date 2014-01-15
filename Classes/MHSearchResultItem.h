@@ -20,9 +20,11 @@
 @property (strong, readonly) NSArray *resultTokens;
 
 + (instancetype) searchResultItemWithIdentifier:(NSData *)identifier
-                                andObjectGetter:(MHObjectGetter)getter;
+                                        keyword:(NSString *)keyword
+                                   objectGetter:(MHObjectGetter)getter;
 
 - (void) addResultToken:(MHResultToken)token;
+- (NSRange) rangeOfTokenInString:(NSIndexPath *)token;
 
 @end
 
@@ -35,5 +37,6 @@
 + (NSIndexPath *)mh_searchResultindexPathForString:(NSUInteger)string
                                               word:(NSUInteger)word
                                              token:(NSUInteger)token;
+
 
 @end

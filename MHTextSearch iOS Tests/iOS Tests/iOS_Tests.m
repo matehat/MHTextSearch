@@ -159,6 +159,8 @@
         NSIndexPath *tokenIndex = item.resultTokens[0];
         XCTAssert([[[name substringFromIndex:tokenIndex.mh_token + tokenIndex.mh_word] lowercaseString] hasPrefix:@"ja"],
                   @"All result should have the searched token at the specified index");
+        XCTAssert([[[name substringWithRange:[item rangeOfTokenInString:tokenIndex]] lowercaseString] isEqualToString:@"ja"],
+                  @"-[MHSearchResultItem rangeOfTokenInString] result should yield the precise range of the found token");
     }];
 }
 - (void)testNameOrdering {

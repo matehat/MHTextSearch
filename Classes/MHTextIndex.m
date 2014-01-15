@@ -485,7 +485,8 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, NSU
                                            MHSearchResultItem *resultItem = searchResult[identifier];
                                            if (!resultItem) {
                                                resultItem = searchResult[identifier] = [MHSearchResultItem searchResultItemWithIdentifier:identifier
-                                                                                                                          andObjectGetter:_objectGetter];
+                                                                                                                                  keyword:keyword
+                                                                                                                             objectGetter:_objectGetter];
                                            }
                                            [resultItem addResultToken:indexEntry];
                                        }];
