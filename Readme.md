@@ -103,6 +103,45 @@ If giving blocks for specifying behavior is not your thing, you can also overrid
 * `-[MHTextIndex getIndexInfoForObject:andIdentifier:]` which, by default uses the `indexer` block
 * `-[MHTextIndex compareResultItem:withItem:reversed:]` which is used to order the search result set
 
+##### Using with Core Data
+
+You can use `NSManagedObject` lifecycle methods to trigger changes to the text index. The following example
+was taken from
+http://www.adevelopingstory.com/blog/2013/04/adding-full-text-search-to-core-data.html and adapted to use with
+this project:
+
+```objective-c
+
+- (void)prepareForDeletion
+{
+    [super prepareForDeletion];
+
+    if (self.indexID.length) {
+        [textindex deleteIndexForObject:self.indexID];
+    }
+}
+
++ (NSData *)createIndexID {
+    NSUUID *uuid = [NSUUID UUID];
+    uuid_t uuidBytes;
+    [uuid getUUIDBytes:uuidBytes];
+    return [NSData dataWithBytes:uuidBytes length:16];
+}
+
+- (void)willSave
+{
+    [super willSave];
+
+    if (self.indexID.length) {
+        [textindex updateIndexForObject:self.indexID];
+    } else {
+        __block NSData *indexID = [[self class] createIndexID];
+        [textindex indexObject:self.indexID];
+        self.indexID = indexID;
+    }
+}
+```
+
 ### Testing
 
 If you want to run the tests, you will need Xcode 5, as the test suite uses the new XCTest. 
