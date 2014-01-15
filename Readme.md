@@ -147,7 +147,7 @@ this project:
 ### Performance
 
 The following graphs show the indexing and searching time (in seconds), as a function of the size
-of text indexed, ranging from 500 KB to about 10 MB.
+of text indexed, ranging from 500 KB to about 10 MB. The benchmarks were run on an iPhone 5.
 
 ![](https://raw.github.com/matehat/MHTextSearch/master/MHTextSearch%20iOS%20Tests/benchmark.png)
 
