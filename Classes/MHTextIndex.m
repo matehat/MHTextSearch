@@ -419,7 +419,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, NSU
                                  }];
         }];
         
-        if (previousStrings.count > indexedObj.strings) {
+        if (previousStrings.count > indexedObj.strings.count) {
             for (NSUInteger i=indexedObj.strings.count; i<previousStrings.count; i++) {
                 removeIndexForStringInObject(ident, i, wb, snapshot);
             }
