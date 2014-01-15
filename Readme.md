@@ -65,7 +65,11 @@ search results, you can tell us how to do that for you
 }];
 ```
 
-and **that's it!** That's all you need to get a full-text index going. You can then start searching
+and **that's it!** That's all you need to get a full-text index going. MHTextSearch takes care of
+splitting text into words, factoring out diacritics and capitalization, all with respect to locale, as you'd expect 
+(well, Foundation does most of the job here). 
+
+You can then start searching:
 
 ```objective-c 
 [index enumerateObjectsForKeyword:@"duck" options:0 withBlock:^(MHSearchResultItem *item, 
@@ -80,14 +84,24 @@ and **that's it!** That's all you need to get a full-text index going. You can t
     item.context;     // The dictionary you provided in the "indexer" block
     item.identifier;  // The object identifier you provided in the "identifier" block
 
-    item.resultTokens; /* This is an NSArray of NSIndexPath instances, each containing 3 indices:
-                        *   - mh_string : the string in which the token occured 
-                        *                 (here, 0 for the object's title)
-                        *   - mh_word : the position in the string where the word containing
-                        *               the token occured
-                        *   - mh_token : the position in the word where the token occured
-                        */
-    }];
+    NSIndexPath *token = item.resultTokens[0]; 
+    /* This is an NSArray of NSIndexPath instances, each containing 3 indices:
+     *   - mh_string : the string in which the token occured 
+     *                 (here, 0 for the object's title)
+     *   - mh_word : the position in the string where the word containing
+     *               the token occured
+     *   - mh_token : the position in the word where the token occured
+     */
+                        
+    NSRange tokenRange = [item rangeOfToken:token];
+    /* This gives the exact range of the matched token in the string where it was found.
+     *
+     * So, according to the example setup I've been giving from the start,  
+     * if token.mh_string == 0, that means the token was found in the object's "title",
+     * and [item.object.title substringWithRange:tokenRange] would yield "duck" (minus 
+     * capitalization and diacritics).
+     */
+}];
 ```
 
 You can also fetch the whole array of `MHSearchResultItem` instances at once using
