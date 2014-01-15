@@ -1,6 +1,6 @@
 ## Introduction
 
-A fast embedded full-text indexing library, written in Objective-C, built on top of [Objective-LevelDB][2].
+A fast & minimalist embedded full-text indexing library, written in Objective-C, built on top of [Objective-LevelDB][2].
 
 ### Installation
 
@@ -15,6 +15,85 @@ By far, the easiest way to integrate this library in your project is by using [C
 3. Run `pod install`
 
 4. Add the `libc++.dylib` Framework to your project.
+
+### Simple API
+
+##### Create a embedded textual index 
+
+```objective-c
+MHTextIndex *index = [MHTextIndex textIndexInLibraryWithName:@"my.awesome.index"];
+```
+
+##### Index any objects
+
+You can tell a `MHTextIndex` instance to index your objects (any object)
+
+```objective-c
+[index indexObject:anyObjectYouWant];
+[index updateIndexForObject:anotherPreviousIndexedObject];
+[index deleteIndexForObject:anotherPreviousIndexedObject];
+```
+
+But for this to work, you need to tell us what *identifier* as `NSData *` can be used to 
+uniquely refer this object.
+
+```objective-c 
+[index setIdentifier:^NSData *(MyCustomObject *object){
+    return object.id; // a NSData instance
+}];
+```
+
+You also need to give us details about the objects, like what are the piece of text to
+index
+
+```objective-c 
+[index setIndexer:^MHIndexedObject *(MyCustomObject *object, NSData *identifier){
+    MHIndexedObject *indx = [MHIndexedObject new];
+    indx.strings = @[ object.title, object.description ]; // Indexed strings
+    indx.weight = object.awesomenessLevel;                // Weight given to this object, when sorting results
+    indx.context = @{@"title": object.title};             // A NSDictionary that will be given alongside search results
+    return indx;
+}];
+```
+
+Finally, if you want to be able to get easy reference to your original object when you get
+search results, you can tell us how to do that for you
+
+```objective-c 
+[index setObjectGetter:^MyCustomObject *(NSData *identifier){
+    return [MyCustomObject customObjectFromIdentifier:identifier];
+}];
+```
+
+and **that's it!** That's all you need to get a full-text index going. You can then start searching
+
+```objective-c 
+[index enumerateObjectsForKeyword:@"duck"
+                          options:0
+                        withBlock:^(MHSearchResultItem *item, NSUInteger rank, NSUInteger count, BOOL *stop){
+                            item.weight;      // As provided by you earlier
+                            item.rank;        // The effective rank in the search result
+                            item.object;      // The first time it is used, it will use the block
+                                                    // you provided earlier to get the object
+                            item.context;     // The dictionary you provided in the "indexer" block
+                            item.identifier;  // The object identifier you provided in the "identifier" block
+                            
+                            item.resultTokens; /* This is an NSArray of NSIndexSet containing 3 indices:
+                                                *   - mh_string : the string in which the token occured 
+                                                *                 (here, 0 for the object's title)
+                                                *   - mh_word : the position in the string where the word containing
+                                                *               the token occured
+                                                *   - mh_token : the position in the word where the token occured
+                                                */
+                            }];
+```
+
+You can also fetch the whole array of `MHSearchResultItem` instances at once using
+
+```objective-c
+NSArray *resultSet = [index searchResultForKeyword:@"duck"
+                                           options:NSEnumerationReverse];
+```
 
 ### Testing
 
