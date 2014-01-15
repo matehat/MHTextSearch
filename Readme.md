@@ -35,7 +35,7 @@ You can tell a `MHTextIndex` instance to index your objects (any object)
 ```
 
 But for this to work, you need to tell us what *identifier* as `NSData *` can be used to 
-uniquely refer this object.
+uniquely refer to this object.
 
 ```objective-c 
 [index setIdentifier:^NSData *(MyCustomObject *object){
@@ -43,7 +43,7 @@ uniquely refer this object.
 }];
 ```
 
-You also need to give us details about the objects, like what are the piece of text to
+You also need to give us details about the objects, like what are the pieces of text to
 index
 
 ```objective-c 
@@ -78,7 +78,7 @@ and **that's it!** That's all you need to get a full-text index going. You can t
                             item.context;     // The dictionary you provided in the "indexer" block
                             item.identifier;  // The object identifier you provided in the "identifier" block
                             
-                            item.resultTokens; /* This is an NSArray of NSIndexSet containing 3 indices:
+                            item.resultTokens; /* This is an NSArray of NSIndexPath instances, each containing 3 indices:
                                                 *   - mh_string : the string in which the token occured 
                                                 *                 (here, 0 for the object's title)
                                                 *   - mh_word : the position in the string where the word containing
@@ -95,9 +95,17 @@ NSArray *resultSet = [index searchResultForKeyword:@"duck"
                                            options:NSEnumerationReverse];
 ```
 
+##### Subclassing
+
+If giving blocks for specifying behavior is not your thing, you can also override the following methods:
+
+* `-[MHTextIndex getIdentifierForObject:]` which, by default uses the `identifier` block
+* `-[MHTextIndex getIndexInfoForObject:andIdentifier:]` which, by default uses the `indexer` block
+* `-[MHTextIndex compareResultItem:withItem:reversed:]` which is used to order the search result set
+
 ### Testing
 
-If you want to run the tests, you will need XCode 5, as the test suite uses the new XCTest. 
+If you want to run the tests, you will need Xcode 5, as the test suite uses the new XCTest. 
 
 Clone this repository and, once in it,
 
