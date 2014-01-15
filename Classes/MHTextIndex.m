@@ -20,13 +20,20 @@ static const NSUInteger stringFoldingOptions = NSCaseInsensitiveSearch|NSDiacrit
 static const size_t uint64_sz = sizeof(uint64_t);
 static const size_t uint32_sz = sizeof(uint32_t);
 
+typedef enum IndexObjectKeyType : NSUInteger {
+    IndexedObjectKeyTypeStrings = 0,
+    IndexedObjectKeyTypeMeta = 1
+} IndexedObjectKeyType;
+
 // Given an object identifier, return the index key that yield the JSON encoded list of indexed strings
-NSData *indexKeyForIndexedObject(NSData *ident) {
-    size_t size = ident.length + uint64_sz;
+NSData *indexKeyForIndexedObject(NSData *ident, IndexedObjectKeyType type) {
+    size_t size = ident.length + uint64_sz + sizeof(type);
     char *key = malloc(size);
     uint64_t *typePtr = key;
     *typePtr = objectPrefix;
     [ident getBytes:key + uint64_sz];
+    IndexedObjectKeyType *keyType = key + uint64_sz + ident.length;
+    *keyType = type;
     return [NSData dataWithBytesNoCopy:key length:size];
 }
 
@@ -151,7 +158,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, NSU
                                    NSString *wordSubstring, NSRange wordSubstringRange, NSUInteger stringIdx,
                                    LDBWritebatch *wb) {
     
-    NSData *keys = [NSMutableData data];
+    NSMutableData *keys = [NSMutableData data];
     NSString *indexedString = [wordSubstring stringByFoldingWithOptions:stringFoldingOptions
                                                                  locale:[NSLocale currentLocale]];
     NSData *keyData;
@@ -249,8 +256,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, NSU
     
     [wb setObject:keys
             forKey:[NSData dataWithBytesNoCopy:key
-                                        length:keyLength
-                                  freeWhenDone:YES]];
+                                        length:keyLength]];
 }
 
 @implementation MHTextIndex {
@@ -287,7 +293,6 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, NSU
 }
 
 - (void)dealloc {
-    dispatch_release(_searchQueue);
     [_db close];
 }
 
@@ -311,38 +316,117 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, NSU
     NSAssert(_identifier != nil, @"You need to defined the identifier block before indexing anything");
     return _identifier(object);
 }
-- (MHTextFragment *)getFragmentForObject:(id)object {
-    return [self getFragmentForObject:object
-                        andIdentifier:[self getIdentifierForObject:object]];
+- (MHIndexedObject *)getIndexInfoForObject:(id)object {
+    return [self getIndexInfoForObject:object
+                         andIdentifier:[self getIdentifierForObject:object]];
 }
-- (MHTextFragment *)getFragmentForObject:(id)object andIdentifier:(NSData *)identifier {
-    NSAssert(_fragmenter != nil, @"You need to defined the fragmenter block before indexing anything");
-    return _fragmenter(object, identifier);
+- (MHIndexedObject *)getIndexInfoForObject:(id)object andIdentifier:(NSData *)identifier {
+    NSAssert(_indexer != nil, @"You need to defined the indexer block before indexing anything");
+    return _indexer(object, identifier);
 }
 
-- (NSOperation *)indexObject:(id)object
-                       error:(NSError * __autoreleasing *)error {
+- (NSOperation *)indexObject:(id)object {
     
     NSAssert(_db != nil, @"Database is closed");
     NSData *ident = [self getIdentifierForObject:object];
-    MHTextFragment *frag = [self getFragmentForObject:object andIdentifier:ident];
-    
-    NSData *newIndexedObject = [NSJSONSerialization dataWithJSONObject:@[@(frag.weight), frag.indexedStrings]
-                                                               options:0 error:error];
-    if (error) return nil;
-    
+    __block NSError *error;
+    __weak MHTextIndex *_wself = self;
     NSBlockOperation *indexingOperation = [NSBlockOperation blockOperationWithBlock:^{
-        LDBWritebatch *wb = [_db newWritebatch];
-        [frag.indexedStrings enumerateObjectsUsingBlock:^(NSString *obj, NSUInteger idx, BOOL *stop) {
+        __strong MHTextIndex *_sself = _wself;
+        
+        MHIndexedObject *indexedObj = [_sself getIndexInfoForObject:object andIdentifier:ident];
+        
+        NSData *newIndexedObjectStrings = [NSJSONSerialization dataWithJSONObject:indexedObj.strings
+                                                                          options:0
+                                                                            error:&error];
+        
+        NSData *newIndexedObjectMeta = [NSKeyedArchiver archivedDataWithRootObject:@{@"weight": @(indexedObj.weight),
+                                                                                     @"ctx": indexedObj.context ?: [NSNull null]}];
+        
+        if (error != nil) {
+            return;
+        }
+        
+        LDBWritebatch *wb = [_sself->_db newWritebatch];
+        [indexedObj.strings enumerateObjectsUsingBlock:^(NSString *obj, NSUInteger idx, BOOL *stop) {
             NSStringEncoding encoding = [obj fastestEncoding];
             NSParameterAssert([obj isKindOfClass:[NSString class]]);
             [obj enumerateSubstringsInRange:(NSRange){0, obj.length}
                                     options:NSStringEnumerationByWords|NSStringEnumerationLocalized
                                  usingBlock:^(NSString *substring, NSRange substringRange, NSRange enclosingRange, BOOL *stop) {
-                                     indexWordInObjectTextFragment(ident, encoding, _minimalTokenLength, substring, substringRange, idx, wb);
+                                     indexWordInObjectTextFragment(ident, encoding, _sself->_minimalTokenLength, substring, substringRange, idx, wb);
                                  }];
         }];
-        [wb setObject:newIndexedObject forKey:indexKeyForIndexedObject(ident)];
+        
+        [wb setObject:newIndexedObjectStrings forKey:indexKeyForIndexedObject(ident, IndexedObjectKeyTypeStrings)];
+        [wb setObject:newIndexedObjectMeta forKey:indexKeyForIndexedObject(ident, IndexedObjectKeyTypeMeta)];
+        [wb apply];
+        wb = nil;
+    }];
+    
+    [_indexingQueue addOperation:indexingOperation];
+    return indexingOperation;
+}
+
+- (NSOperation *)updateIndexForObject:(id)object {
+    
+    NSAssert(_db != nil, @"Database is closed");
+    NSData *ident = [self getIdentifierForObject:object];
+    __block NSError *error;
+    
+    __weak MHTextIndex *_wself = self;
+    NSBlockOperation *indexingOperation = [NSBlockOperation blockOperationWithBlock:^{
+        __strong MHTextIndex *_sself = _wself;
+        
+        MHIndexedObject *indexedObj = [_sself getIndexInfoForObject:object andIdentifier:ident];
+        LDBSnapshot *snapshot = [_db newSnapshot];
+        
+        NSData *previousIndexedObjectStrings = [snapshot objectForKey:indexKeyForIndexedObject(ident, IndexedObjectKeyTypeStrings)];
+        NSArray *previousStrings;
+        
+        if (!previousIndexedObjectStrings) {
+            previousStrings = @[];
+        } else {
+            previousStrings = [NSJSONSerialization JSONObjectWithData:previousIndexedObjectStrings options:0 error:&error];
+        }
+        if (error) return;
+        
+        NSData *newIndexedObjectStrings = [NSJSONSerialization dataWithJSONObject:indexedObj.strings
+                                                                          options:0
+                                                                            error:&error];
+        
+        NSData *newIndexedObjectMeta = [NSKeyedArchiver archivedDataWithRootObject:@{@"weight": @(indexedObj.weight),
+                                                                                     @"ctx": indexedObj.context ?: [NSNull null]}];
+        
+        if (error) return;
+        
+        LDBWritebatch *wb = [_sself->_db newWritebatch];
+        [indexedObj.strings enumerateObjectsUsingBlock:^(NSString *obj, NSUInteger idx, BOOL *stop) {
+            if (idx < previousStrings.count) {
+                if ([previousStrings[idx] isEqualToString:obj])
+                    return;
+                else {
+                    removeIndexForStringInObject(ident, idx, wb, snapshot);
+                }
+            }
+            
+            NSStringEncoding encoding = [obj fastestEncoding];
+            NSParameterAssert([obj isKindOfClass:[NSString class]]);
+            [obj enumerateSubstringsInRange:(NSRange){0, obj.length}
+                                    options:NSStringEnumerationByWords|NSStringEnumerationLocalized
+                                 usingBlock:^(NSString *substring, NSRange substringRange, NSRange enclosingRange, BOOL *stop) {
+                                     indexWordInObjectTextFragment(ident, encoding, _sself->_minimalTokenLength, substring, substringRange, idx, wb);
+                                 }];
+        }];
+        
+        if (previousStrings.count > indexedObj.strings) {
+            for (NSUInteger i=indexedObj.strings.count; i<previousStrings.count; i++) {
+                removeIndexForStringInObject(ident, i, wb, snapshot);
+            }
+        }
+        
+        [wb setObject:newIndexedObjectStrings forKey:indexKeyForIndexedObject(ident, IndexedObjectKeyTypeStrings)];
+        [wb setObject:newIndexedObjectMeta forKey:indexKeyForIndexedObject(ident, IndexedObjectKeyTypeMeta)];
         [wb apply];
     }];
     
@@ -350,88 +434,34 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, NSU
     return indexingOperation;
 }
 
-- (NSOperation *)updateIndexForObject:(id)object
-                                error:(NSError * __autoreleasing *)error {
+- (NSOperation *)removeIndexForObject:(id)object {
     
     NSAssert(_db != nil, @"Database is closed");
     NSData *ident = [self getIdentifierForObject:object];
-    MHTextFragment *frag = [self getFragmentForObject:object andIdentifier:ident];
-    LDBSnapshot *snapshot = [_db newSnapshot];
-    NSData *stringsData = [snapshot objectForKey:indexKeyForIndexedObject(ident)];
+    __block NSError *error;
     
-    if (!stringsData) {
-        return [self indexObject:object];
-    } else {
-        NSArray *indexedObject = [NSJSONSerialization JSONObjectWithData:stringsData options:0 error:error];
-        NSArray *previousStrings = indexedObject[1];
-        if (error) return nil;
-        
-        NSData *newIndexedObject = [NSJSONSerialization dataWithJSONObject:@[@(frag.weight), frag.indexedStrings]
-                                                                     options:0 error:error];
-        if (error) return nil;
-        
-        NSBlockOperation *indexingOperation = [NSBlockOperation blockOperationWithBlock:^{
-            LDBWritebatch *wb = [_db newWritebatch];
-            [frag.indexedStrings enumerateObjectsUsingBlock:^(NSString *obj, NSUInteger idx, BOOL *stop) {
-                if (idx < previousStrings.count) {
-                    if ([previousStrings[idx] isEqualToString:obj])
-                        return;
-                    else {
-                        removeIndexForStringInObject(ident, idx, wb, snapshot);
-                    }
-                }
-                
-                NSStringEncoding encoding = [obj fastestEncoding];
-                NSParameterAssert([obj isKindOfClass:[NSString class]]);
-                [obj enumerateSubstringsInRange:(NSRange){0, obj.length}
-                                        options:NSStringEnumerationByWords|NSStringEnumerationLocalized
-                                     usingBlock:^(NSString *substring, NSRange substringRange, NSRange enclosingRange, BOOL *stop) {
-                                         indexWordInObjectTextFragment(ident, encoding, _minimalTokenLength, substring, substringRange, idx, wb);
-                                     }];
-            }];
+    if (error) return nil;
+    __weak MHTextIndex *_wself = self;
+    NSBlockOperation *indexingOperation = [NSBlockOperation blockOperationWithBlock:^{
+        LDBSnapshot *snapshot = [_db newSnapshot];
+        NSData *previousStringsData = [snapshot objectForKey:indexKeyForIndexedObject(ident, IndexedObjectKeyTypeStrings)];
+        if (previousStringsData) {
+            NSArray *previousStrings = [NSJSONSerialization JSONObjectWithData:previousStringsData options:0 error:&error];
             
-            if (previousStrings.count > frag.indexedStrings) {
-                for (NSUInteger i=frag.indexedStrings.count; i<previousStrings.count; i++) {
-                    removeIndexForStringInObject(ident, i, wb, snapshot);
-                }
-            }
-            
-            [wb setObject:newIndexedObject forKey:indexKeyForIndexedObject(ident)];
-            [wb apply];
-        }];
-        
-        [_indexingQueue addOperation:indexingOperation];
-        return indexingOperation;
-    }
-}
-
-- (NSOperation *)removeIndexForObject:(id)object
-                                error:(NSError * __autoreleasing *)error {
-    
-    NSAssert(_db != nil, @"Database is closed");
-    NSData *ident = [self getIdentifierForObject:object];
-    LDBSnapshot *snapshot = [_db newSnapshot];
-    NSData *stringsData = [snapshot objectForKey:indexKeyForIndexedObject(ident)];
-    
-    if (stringsData) {
-        NSArray *indexedObject = [NSJSONSerialization JSONObjectWithData:stringsData options:0 error:error];
-        NSArray *previousStrings = indexedObject[1];
-        if (error) return nil;
-        
-        NSBlockOperation *indexingOperation = [NSBlockOperation blockOperationWithBlock:^{
-            LDBWritebatch *wb = [_db newWritebatch];
+            __strong MHTextIndex *_sself = _wself;
+            LDBWritebatch *wb = [_sself->_db newWritebatch];
             [previousStrings enumerateObjectsUsingBlock:^(NSString *obj, NSUInteger idx, BOOL *stop) {
                 removeIndexForStringInObject(ident, idx, wb, snapshot);
             }];
             
-            [wb removeObjectForKey:indexKeyForIndexedObject(ident)];
+            [wb removeObjectForKey:indexKeyForIndexedObject(ident, IndexedObjectKeyTypeStrings)];
+            [wb removeObjectForKey:indexKeyForIndexedObject(ident, IndexedObjectKeyTypeMeta)];
             [wb apply];
-        }];
-        
-        [_indexingQueue addOperation:indexingOperation];
-        return indexingOperation;
-    }
-    return nil;
+        }
+    }];
+    
+    [_indexingQueue addOperation:indexingOperation];
+    return indexingOperation;
 }
 
 - (NSArray *)searchResultForKeyword:(NSString *)keyword
@@ -451,7 +481,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, NSU
                                        usingBlock:^(LevelDBKey *key, NSData *rangeData, BOOL*stop){
                                            NSData *fullKey = NSDataFromLevelDBKey(key);
                                            MHResultToken indexEntry = unpackTokenData(fullKey, rangeData);
-                                           NSData *identifier = [NSData dataWithBytesNoCopy:indexEntry.identifier length:indexEntry.length];
+                                           NSData *identifier = [NSData dataWithBytesNoCopy:indexEntry.identifier length:indexEntry.length freeWhenDone:NO];
                                            MHSearchResultItem *resultItem = searchResult[identifier];
                                            if (!resultItem) {
                                                resultItem = searchResult[identifier] = [MHSearchResultItem searchResultItemWithIdentifier:identifier
@@ -461,9 +491,10 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, NSU
                                        }];
         
         [searchResult enumerateKeysAndObjectsUsingBlock:^(NSData *key, MHSearchResultItem *obj, BOOL *stop) {
-            NSData *stringsData = [snapshot objectForKey:indexKeyForIndexedObject(key)];
-            NSArray *indexedObject = [NSJSONSerialization JSONObjectWithData:stringsData options:0 error:NULL];
-            obj.weight = [indexedObject[0] floatValue];
+            NSData *indexedObjectMetaData = [snapshot objectForKey:indexKeyForIndexedObject(key, IndexedObjectKeyTypeMeta)];
+            NSDictionary *indexedObjectMeta = [NSJSONSerialization JSONObjectWithData:indexedObjectMetaData options:0 error:NULL];
+            obj.weight = [indexedObjectMeta[@"weight"] floatValue];
+            obj.context = indexedObjectMeta[@"ctx"];
         }];
         
         result = [[searchResult allValues] sortedArrayWithOptions:_sortOptions

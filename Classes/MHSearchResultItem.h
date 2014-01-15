@@ -14,6 +14,7 @@
 @property CGFloat weight;
 @property NSUInteger rank;
 @property (readonly) id object;
+@property (strong) NSDictionary *context;
 
 @property (strong, readonly) NSData *identifier;
 @property (strong, readonly) NSArray *resultTokens;

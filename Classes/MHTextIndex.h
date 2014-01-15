@@ -8,11 +8,11 @@
 
 #import <Foundation/Foundation.h>
 #import <Objective-LevelDB/LevelDB.h>
-#import "MHTextFragment.h"
+#import "MHIndexedObject.h"
 
 @class MHSearchResultItem;
 
-typedef MHTextFragment *(^MHFragmentBlock)(id object, NSData *identifier);
+typedef MHIndexedObject *(^MHIndexerBlock)(id object, NSData *identifier);
 typedef NSData *(^MHIdentifyBlock)(id object);
 typedef id (^MHObjectGetter)(NSData *identifier);
 
@@ -36,7 +36,7 @@ typedef struct {
 
 @property (strong, readonly) NSOperationQueue * indexingQueue;
 
-@property (strong, nonatomic) MHFragmentBlock fragmenter;
+@property (strong, nonatomic) MHIndexerBlock indexer;
 @property (strong, nonatomic) MHIdentifyBlock identifier;
 @property (strong, nonatomic) MHObjectGetter objectGetter;
 
@@ -44,21 +44,19 @@ typedef struct {
 + (instancetype) textIndexInLibraryWithName:(NSString *)name;
 - (instancetype) initWithName:(NSString *)name path:(NSString *)path options:(LevelDBOptions)options;
 
-- (NSOperation *) indexObject:(id)object
-                        error:(NSError * __autoreleasing *)error;
-- (NSOperation *) updateIndexForObject:(id)object
-                                 error:(NSError * __autoreleasing *)error;
-- (NSOperation *) removeIndexForObject:(id)object
-                                 error:(NSError * __autoreleasing *)error;
+- (NSOperation *) indexObject:(id)object;
+- (NSOperation *) updateIndexForObject:(id)object;
+- (NSOperation *) removeIndexForObject:(id)object;
 
 - (NSArray *)searchResultForKeyword:(NSString *)keyword
                             options:(NSEnumerationOptions)options;
 - (void) enumerateObjectsForKeyword:(NSString *)keyword
+                            options:(NSEnumerationOptions)options
                           withBlock:(void(^)(MHSearchResultItem *resultItem, NSUInteger rank, NSUInteger count, BOOL *stop))block;
 
 - (NSData *) getIdentifierForObject:(id)object;
-- (MHTextFragment *) getFragmentForObject:(id)object;
-- (MHTextFragment *) getFragmentForObject:(id)object andIdentifier:(NSData *)identifier;
+- (MHIndexedObject *) getIndexInfoForObject:(id)object;
+- (MHIndexedObject *) getIndexInfoForObject:(id)object andIdentifier:(NSData *)identifier;
 
 - (void) close;
 - (void) deleteFromDisk;

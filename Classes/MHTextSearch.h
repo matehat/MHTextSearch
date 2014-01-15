@@ -10,7 +10,7 @@
 #define _MHTextSearch_h
 
 #import "MHTextIndex.h"
-#import "MHTextFragment.h"
+#import "MHIndexedObject.h"
 #import "MHSearchResultItem.h"
 
 #endif

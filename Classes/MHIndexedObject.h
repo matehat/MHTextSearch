@@ -1,5 +1,5 @@
 //
-//  MHTextFragment.h
+//  MHIndexedObject.h
 //  
 //
 //  Created by Mathieu D'Amours on 1/14/14.
@@ -8,10 +8,12 @@
 
 #import <Foundation/Foundation.h>
 
-@interface MHTextFragment : NSObject
+@interface MHIndexedObject : NSObject
 
 @property (strong) NSData *     identifier;
-@property (strong) NSArray *    indexedStrings;
+@property (strong) NSArray *    strings;
 @property          CGFloat      weight;
+
+@property (strong) NSDictionary * context;
 
 @end
