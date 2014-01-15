@@ -53,6 +53,7 @@
 		D0CC9A8118864ED800203AC3 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS7.1.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		D0CC9A8318864EE200203AC3 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS7.1.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		D0CC9A8518864F5C00203AC3 /* libc++.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = "libc++.dylib"; path = "Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS7.1.sdk/usr/lib/libc++.dylib"; sourceTree = DEVELOPER_DIR; };
+		D0CC9A87188652CA00203AC3 /* Classes */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Classes; path = ../Classes; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -85,6 +86,7 @@
 		D0CC9A2C188605DB00203AC3 = {
 			isa = PBXGroup;
 			children = (
+				D0CC9A87188652CA00203AC3 /* Classes */,
 				D0CC9A40188605EE00203AC3 /* iOS Tests */,
 				D0CC9A5A18864CA100203AC3 /* iPhone Performance Test */,
 				D0CC9A39188605EE00203AC3 /* Frameworks */,

@@ -8,9 +8,7 @@
 
 #import <XCTest/XCTest.h>
 #import <BlocksKit.h>
-#import <MHTextSearch/MHSearchResultItem.h>
-#import <MHTextSearch/MHTextFragment.h>
-#import <MHTextSearch/MHTextIndex.h>
+#import <MHTextSearch.h>
 
 @interface iOS_Tests : XCTestCase
 

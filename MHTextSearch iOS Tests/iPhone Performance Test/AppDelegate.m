@@ -6,7 +6,7 @@
 //
 //
 
-#import <MHTextSearch/MHTextIndex.h>
+#import <MHTextSearch.h>
 #import "AppDelegate.h"
 
 @implementation AppDelegate
