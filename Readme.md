@@ -68,24 +68,26 @@ search results, you can tell us how to do that for you
 and **that's it!** That's all you need to get a full-text index going. You can then start searching
 
 ```objective-c 
-[index enumerateObjectsForKeyword:@"duck"
-                          options:0
-                        withBlock:^(MHSearchResultItem *item, NSUInteger rank, NSUInteger count, BOOL *stop){
-                            item.weight;      // As provided by you earlier
-                            item.rank;        // The effective rank in the search result
-                            item.object;      // The first time it is used, it will use the block
-                                                    // you provided earlier to get the object
-                            item.context;     // The dictionary you provided in the "indexer" block
-                            item.identifier;  // The object identifier you provided in the "identifier" block
-                            
-                            item.resultTokens; /* This is an NSArray of NSIndexPath instances, each containing 3 indices:
-                                                *   - mh_string : the string in which the token occured 
-                                                *                 (here, 0 for the object's title)
-                                                *   - mh_word : the position in the string where the word containing
-                                                *               the token occured
-                                                *   - mh_token : the position in the word where the token occured
-                                                */
-                            }];
+[index enumerateObjectsForKeyword:@"duck" options:0 withBlock:^(MHSearchResultItem *item, 
+                                                                NSUInteger rank, 
+                                                                NSUInteger count, 
+                                                                BOOL *stop){
+                                                                    
+    item.weight;      // As provided by you earlier
+    item.rank;        // The effective rank in the search result
+    item.object;      // The first time it is used, it will use the block
+                            // you provided earlier to get the object
+    item.context;     // The dictionary you provided in the "indexer" block
+    item.identifier;  // The object identifier you provided in the "identifier" block
+
+    item.resultTokens; /* This is an NSArray of NSIndexPath instances, each containing 3 indices:
+                        *   - mh_string : the string in which the token occured 
+                        *                 (here, 0 for the object's title)
+                        *   - mh_word : the position in the string where the word containing
+                        *               the token occured
+                        *   - mh_token : the position in the word where the token occured
+                        */
+    }];
 ```
 
 You can also fetch the whole array of `MHSearchResultItem` instances at once using
