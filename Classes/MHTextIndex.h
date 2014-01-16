@@ -50,7 +50,7 @@ typedef struct {
 
 - (NSArray *)searchResultForKeyword:(NSString *)keyword
                             options:(NSEnumerationOptions)options;
-- (void) enumerateObjectsForKeyword:(NSString *)keyword
+- (void) enumerateResultForKeyword:(NSString *)keyword
                             options:(NSEnumerationOptions)options
                           withBlock:(void(^)(MHSearchResultItem *resultItem, NSUInteger rank, NSUInteger count, BOOL *stop))block;
 

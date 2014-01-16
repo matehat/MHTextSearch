@@ -166,8 +166,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, NSU
     
     uint64_t keyLength;
     uint64_t strLength = [indexedString lengthOfBytesUsingEncoding:encoding];
-    uint64_t maxLength = strLength;
-    uint32_t usedLength;
+    NSUInteger usedLength;
     uint64_t * indexPrefixPtr;
     uint32_t * indexPositionPtr;
     
