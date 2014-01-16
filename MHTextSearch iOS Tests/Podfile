@@ -7,4 +7,4 @@ platform :ios, '7.0'
 link_with "iPhone Performance Test", "iOS Tests"
 
 pod "MHTextSearch", :path => "../MHTextSearch.podspec"
-pod "BlocksKit"
+pod 'BlocksKit', :git => 'https://github.com/pandamonia/BlocksKit.git', :branch => 'next'
