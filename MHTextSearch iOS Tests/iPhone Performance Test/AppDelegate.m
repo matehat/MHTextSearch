@@ -12,25 +12,15 @@
 @implementation AppDelegate {
     
     MHTextIndex *textIndex;
-    NSMutableArray *texts;
+//    NSMutableArray *texts;
     NSMutableArray *textPaths;
 }
 
-//#define CREATE_NEW_INDEX
-
-CGFloat sizeOfIndexedTexts = 10.0;
+#define CREATE_NEW_INDEX
+#define INDEX_TEXTS
+CGFloat sizeOfIndexedTexts = 0;
 
 - (void)measureWithSize:(CGFloat)size {
-    texts = [NSMutableArray arrayWithCapacity:2000];
-    textPaths = [NSMutableArray arrayWithCapacity:2000];
-    
-#ifdef CREATE_NEW_INDEX
-    textIndex = [MHTextIndex textIndexInLibraryWithName:@"textIndex"];
-    [textIndex deleteFromDisk];
-#endif
-    
-    textIndex = [MHTextIndex textIndexInLibraryWithName:@"textIndex"];
-    textIndex.indexingQueue.maxConcurrentOperationCount = 2;
     
     [textIndex setIdentifier:^NSData *(id object){
         NSUInteger indexVal = [object integerValue];
@@ -59,7 +49,7 @@ CGFloat sizeOfIndexedTexts = 10.0;
         return frag;
     }];
 
-#ifdef CREATE_NEW_INDEX
+#ifdef INDEX_TEXTS
     NSString *textsDirPath = [[[NSBundle mainBundle] bundlePath] stringByAppendingPathComponent:@"texts"];
     if (!textsDirPath)
         return;
@@ -67,7 +57,7 @@ CGFloat sizeOfIndexedTexts = 10.0;
     NSFileManager *fm = [NSFileManager defaultManager];
     NSDirectoryEnumerator *enumerator = [fm enumeratorAtPath:textsDirPath];
     NSString *childPath;
-    NSUInteger totalSize, count = 0;
+    NSUInteger totalSize = 0, count = 0;
     
     CFAbsoluteTime t1 = CFAbsoluteTimeGetCurrent();
     for (id child in enumerator) {
@@ -80,13 +70,16 @@ CGFloat sizeOfIndexedTexts = 10.0;
             if (error) {
                 continue;
             } else {
-                [textPaths addObject:childPath];
-                [textIndex indexObject:@(count)];
+                
+                if (totalSize >= (size + 0.5)*1024*1024) {
+                    break;
+                } else if (totalSize >= size*1024*1024) {
+                    [textPaths addObject:childPath];
+                    [textIndex indexObject:@(count)];
+                }
                 
                 count++;
                 totalSize += [textContent lengthOfBytesUsingEncoding:[textContent fastestEncoding]];
-                if (totalSize >= size*1024*1024)
-                    break;
             }
         }
     }
@@ -114,9 +107,9 @@ CGFloat sizeOfIndexedTexts = 10.0;
         double delayInSeconds = 0.5;
         dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));
         dispatch_after(popTime, dispatch_get_main_queue(), ^(void){
-            exit(0);
+            [self measureWithSize:size+0.5];
         });
-#ifdef CREATE_NEW_INDEX
+#ifdef INDEX_TEXTS
     });
 #endif
 }
@@ -126,6 +119,16 @@ CGFloat sizeOfIndexedTexts = 10.0;
     // Override point for customization after application launch.
     self.window.backgroundColor = [UIColor whiteColor];
     [self.window makeKeyAndVisible];
+    
+#ifdef CREATE_NEW_INDEX
+    textIndex = [MHTextIndex textIndexInLibraryWithName:@"textIndex"];
+    [textIndex deleteFromDisk];
+#endif
+    
+    textIndex = [MHTextIndex textIndexInLibraryWithName:@"textIndex"];
+    textIndex.indexingQueue.maxConcurrentOperationCount = 2;
+    
+    textPaths = [NSMutableArray arrayWithCapacity:2000];
     
     double delayInSeconds = 0.1;
     dispatch_time_t popTime = dispatch_time(DISPATCH_TIME_NOW, (int64_t)(delayInSeconds * NSEC_PER_SEC));

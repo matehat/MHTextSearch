@@ -34,6 +34,7 @@
     
     textIndex = [MHTextIndex textIndexInLibraryWithName:@"textIndex"];
     nameIndex = [MHTextIndex textIndexInLibraryWithName:@"nameIndex"];
+//    nameIndex.indexingQueue.maxConcurrentOperationCount = 1;
     
     texts = [NSMutableArray arrayWithCapacity:2000];
     textPaths = [NSMutableArray arrayWithCapacity:2000];
@@ -235,7 +236,7 @@
         CFAbsoluteTime t2 = CFAbsoluteTimeGetCurrent();
         NSArray *results = [textIndex searchResultForKeyword:@"hat" options:0];
         NSLog(@"Search over %lu names happened in %f seconds", (unsigned long)texts.count, CFAbsoluteTimeGetCurrent() - t2);
-        XCTAssert(results.count == 4, @"The search should yield 4 result");
+        XCTAssert(results.count == 1, @"The search should yield 1 result");
     };
 }
 
