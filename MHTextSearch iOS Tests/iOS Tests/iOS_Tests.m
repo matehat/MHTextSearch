@@ -25,6 +25,7 @@
 
 - (void)setUp {
     [super setUp];
+    
     nameIndex = [MHTextIndex textIndexInLibraryWithName:@"nameIndex"];
     [nameIndex deleteFromDisk];
     
@@ -182,6 +183,19 @@
         XCTAssert([item.context[@"name"] isEqualToString:item.object],
                   @"An item's context should contain the string it was used for indexing");
     }];
+}
+
+- (void)testRemoval {
+    [self indexAllNames];
+    
+    NSArray *results = [nameIndex searchResultForKeyword:@"th" options:0];
+    [results bk_each:^(MHSearchResultItem *obj) {
+        [nameIndex removeIndexForObject:@([names indexOfObject:obj.object])];
+    }];
+    [nameIndex.indexingQueue waitUntilAllOperationsAreFinished];
+    
+    XCTAssertEqual([nameIndex searchResultForKeyword:@"th" options:0].count, 0,
+                   @"After removing every result item of a search from the index, the same search should yield nothing.");
 }
 
 

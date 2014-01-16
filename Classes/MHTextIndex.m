@@ -50,7 +50,7 @@ NSData *indexKeyPrefixForObjectWords(NSData *ident) {
 // Given an object identifier and the index of the indexed string therein, return the index kex prefix for the index region
 // containing all corresponding indexed word keys
 NSData *indexKeyPrefixForObjectStringAtIndex(NSData *ident, NSUInteger idx) {
-    size_t size = ident.length + uint64_sz + 2*uint32_sz;
+    size_t size = ident.length + uint64_sz + uint32_sz;
     char *key = malloc(size);
     char *keyPtr = key;
     
@@ -63,7 +63,6 @@ NSData *indexKeyPrefixForObjectStringAtIndex(NSData *ident, NSUInteger idx) {
     
     uint32_t *positionPtr = keyPtr;
     positionPtr[0] = idx;
-    positionPtr[1] = 0;
     
     return [NSData dataWithBytesNoCopy:key length:size];
 }
@@ -232,7 +231,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, NSU
         [keys appendBytes:&keyLength length:uint64_sz];
         
         // ... and append the key bytes, without the leading type 0
-        [keys appendBytes:key + uint64_sz length:keyLength];
+        [keys appendBytes:key length:keyLength];
     }
     
     // Finally, for each indexed word, we need to insert a reversed index entry for bookkeeping
