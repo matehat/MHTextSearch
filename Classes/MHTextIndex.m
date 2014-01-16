@@ -165,13 +165,14 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, NSU
     globalRange = wordSubstringRange;
     
     uint64_t keyLength;
-    uint64_t maxLength = [indexedString maximumLengthOfBytesUsingEncoding:encoding];
+    uint64_t strLength = [indexedString lengthOfBytesUsingEncoding:encoding];
+    uint64_t maxLength = strLength;
     uint32_t usedLength;
     uint64_t * indexPrefixPtr;
     uint32_t * indexPositionPtr;
     
     // We allocate a buffer in memory for holding the largest word suffix key
-    char * key = malloc(uint64_sz + maxLength + uint32_sz * 4 + ident.length);
+    char * key = malloc(uint64_sz + strLength + uint32_sz * 4 + ident.length);
     
     // We set a uint64 of value 1 at the start of the key (prefix for "direct" type)
     // This will be shared among all generated keys
@@ -193,7 +194,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, NSU
         
         // We copy the bytes for the suffix substring into the suffix key
         [indexedString getBytes:keyPtr
-                      maxLength:maxLength
+                      maxLength:strLength
                      usedLength:&usedLength
                        encoding:encoding
                         options:NSStringEncodingConversionAllowLossy
