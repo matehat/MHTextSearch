@@ -158,7 +158,17 @@ this project:
 }
 ```
 
-### Performance
+### Performance & Fine tuning
+
+There are a few knobs you can play with to make MHTextSeach better fit your needs. 
+
+- A `MHTextIndex` instance has a `skipStopWords` boolean property that is true by default and
+  that avoids indexing very common english words. (**TODO**: make that work with other languages)
+
+- It also has a `minimalTokenLength` that is equal to `2` by default. This sets a minimum for
+  the number of letters that a token needs to be for it to be indexed. This also greatly minimizes
+  the size of the index, as well as the indexing and searching time. It skips indexing single-letter
+  words and the last letter of every word, when set to `2`.
 
 The following graphs show the indexing and searching time (in seconds), as a function of the size
 of text indexed, ranging from 500 KB to about 10 MB. The benchmarks were run on an iPhone 5.
