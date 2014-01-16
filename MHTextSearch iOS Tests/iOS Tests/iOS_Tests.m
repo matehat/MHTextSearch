@@ -16,7 +16,7 @@
 
 @implementation iOS_Tests {
     MHTextIndex *nameIndex;
-    NSArray *names;
+    NSMutableArray *names;
     
     MHTextIndex *textIndex;
     NSMutableArray *texts;
@@ -52,7 +52,7 @@
                                                    encoding:NSUTF8StringEncoding
                                                       error:NULL];
     
-    names = [namesRaw componentsSeparatedByString:@"\n"];
+    names = [[namesRaw componentsSeparatedByString:@"\n"] mutableCopy];
     
     [nameIndex setIdentifier:^NSData *(id object){
         NSUInteger indexVal = [object integerValue];
@@ -196,6 +196,37 @@
     
     XCTAssertEqual([nameIndex searchResultForKeyword:@"th" options:0].count, 0,
                    @"After removing every result item of a search from the index, the same search should yield nothing.");
+}
+
+- (void) testUpdate {
+    [self indexAllNames];
+    
+    NSArray *results = [nameIndex searchResultForKeyword:@"er" options:0];
+    NSMutableSet *resultSet1 = [NSMutableSet setWithArray:[results bk_map:^(MHSearchResultItem *obj) { return obj.object; }]];
+    [nameIndex.indexingQueue waitUntilAllOperationsAreFinished];
+    
+    NSMutableSet *updatedSet = [NSMutableSet set];
+    [nameIndex enumerateResultForKeyword:@"et" options:0
+                                withBlock:^(MHSearchResultItem *resultItem, NSUInteger rank, NSUInteger count, BOOL *stop) {
+                                    NSUInteger nameIdx;
+                                    [resultItem.identifier getBytes:&nameIdx length:sizeof(NSUInteger)];
+                                    NSString *name = resultItem.object;
+                                    [resultSet1 removeObject:name];
+                                    names[nameIdx] = [name stringByReplacingCharactersInRange:[resultItem rangeOfTokenInString:resultItem.resultTokens[0]]
+                                                                                   withString:@"er"];
+                                    
+                                    [updatedSet addObject:names[nameIdx]];
+                                    [nameIndex updateIndexForObject:@(nameIdx)];
+                                }];
+    
+    [nameIndex.indexingQueue waitUntilAllOperationsAreFinished];
+    
+    results = [nameIndex searchResultForKeyword:@"er" options:0];
+    NSMutableSet *resultSet2 = [NSMutableSet setWithArray:[results bk_map:^(MHSearchResultItem *obj) { return obj.object; }]];
+    [resultSet2 minusSet:resultSet1];
+    
+    XCTAssert([resultSet2 isEqualToSet:updatedSet],
+              @"The new items in the search result set should be those that were updated, that now match the search");
 }
 
 
