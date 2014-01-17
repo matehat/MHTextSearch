@@ -1,6 +1,6 @@
 ## MHTextSearch
 
-A fast & minimalist embedded full-text indexing library, written in Objective-C, built on top of [Objective-LevelDB][2]. *It is still in development, obviously. You're welcomed to contribute if you find the project interesting!*
+A fast & minimal embedded full-text indexing library, written in Objective-C, built on top of [Objective-LevelDB][2]. *It is still in development, obviously. You're welcomed to contribute if you find the project interesting!*
 
 ### Installation
 
