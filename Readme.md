@@ -173,7 +173,12 @@ There are a few knobs you can play with to make MHTextSeach better fit your need
 - `MHTextIndex` uses a `NSOperationQueue` under the hood to coordinate indexing operations. It is 
   exposed as a property named `indexingQueue`. You can thus set its `maxConcurrentOperationCount`
   property to control how concurrent the indexing can be. Since the underlying database library
-  performing I/O is thread-safe, concurrency is not a problem.
+  performing I/O is thread-safe, concurrency is not a problem. This also means you can explicitly
+  wait for indexing operations to finish using:
+  
+  ```objective-c
+  [index.indexingQueue waitUntilAllOperationsAreFinished];
+  ```
  
 - Searching is also concurrent, but it uses a `dispatch_queue_t` (not yet exposed or tunable).
 
