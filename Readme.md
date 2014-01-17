@@ -158,6 +158,24 @@ this project:
 }
 ```
 
+### Operations & Queues
+
+`MHTextIndex` uses a `NSOperationQueue` under the hood to coordinate indexing operations. It is 
+exposed as a property named `indexingQueue`. You can thus set its `maxConcurrentOperationCount`
+property to control how concurrent the indexing can be. Since the underlying database library
+performing I/O is [thread-safe][3], concurrency is not a problem. This also means you can explicitly
+wait for indexing operations to finish using:
+  
+```objective-c
+[index.indexingQueue waitUntilAllOperationsAreFinished];
+```
+
+The three indexing methods `-[MHTextIndex indexObject:]`, `-[MHTextIndex updateIndexForObject:]`, 
+`-[MHTextIndex removeIndexForObject:]` all return `NSOperation` instances, that you can take advantage of,
+if you need, using its `completionBlock` property or `-[NSOperation waitUntilFinished]` method.
+ 
+Searching is also concurrent, but it uses a `dispatch_queue_t` (not yet exposed or tunable).
+
 ### Performance & Fine tuning
 
 There are a few knobs you can play with to make MHTextSeach better fit your needs. 
@@ -170,17 +188,11 @@ There are a few knobs you can play with to make MHTextSeach better fit your need
   the size of the index, as well as the indexing and searching time. It skips indexing single-letter
   words and the last letter of every word, when set to `2`.
   
-- `MHTextIndex` uses a `NSOperationQueue` under the hood to coordinate indexing operations. It is 
-  exposed as a property named `indexingQueue`. You can thus set its `maxConcurrentOperationCount`
-  property to control how concurrent the indexing can be. Since the underlying database library
-  performing I/O is [thread-safe][3], concurrency is not a problem. This also means you can explicitly
-  wait for indexing operations to finish using:
-  
-  ```objective-c
-  [index.indexingQueue waitUntilAllOperationsAreFinished];
-  ```
- 
-- Searching is also concurrent, but it uses a `dispatch_queue_t` (not yet exposed or tunable).
+- When indexing long form texts (documents rather than, say, simple names), you can turn on the
+  `discardDuplicateTokens` boolean property on `MHTextIndex`. This makes the index only consider
+  the first occurence of every indexed token for a given piece of texts. If you are okay with 
+  only knowing **if** a token appears in a text, rather than **where** does every occurence appear,
+  you can gain a speed bump in *indexing* time, by a factor of 3 to 5.
 
 The following graphs show the indexing and searching time (in seconds), as a function of the size
 of text indexed, ranging from 500 KB to about 10 MB. The benchmarks were run on an iPhone 5.
