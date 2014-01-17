@@ -13,6 +13,6 @@ Pod::Spec.new do |s|
   
   s.source       =  { :git => 'https://github.com/matehat/MHTextSearch.git', :tag => 'v0.2.2' }
   
-  s.source_files = 'Classes/*.{h,m,mm}'
+  s.source_files = 'Classes/*.{h,m,c,mm}'
   s.dependency 'Objective-LevelDB'
 end

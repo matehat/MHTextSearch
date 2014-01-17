@@ -8,6 +8,8 @@
 
 #import "MHTextIndex.h"
 #import "MHSearchResultItem.h"
+#import "bloom-filter.h"
+#import "hash-string.h"
 #import <Objective-LevelDB/LDBWritebatch.h>
 #import <Objective-LevelDB/LDBSnapshot.h>
 
@@ -162,7 +164,7 @@ void removeIndexForStringInObject(NSData *ident, NSUInteger stringIdx, LDBWriteb
                                        });
                                    }];
 }
-void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding,
+void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, bloom_filter_s *bloomFilter,
                                    NSUInteger minimalTokenLength, BOOL skipStopWords,
                                    NSString *wordSubstring, NSRange wordSubstringRange, NSUInteger stringIdx,
                                    LDBWritebatch *wb) {
@@ -219,6 +221,14 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding,
                         options:NSStringEncodingConversionAllowLossy
                           range:subRange
                  remainingRange:NULL];
+        
+        if (bloomFilter != NULL) {
+            if (bloom_filter_query(bloomFilter, keyPtr, usedLength) == 1)
+                continue;
+            else
+                bloom_filter_insert(bloomFilter, keyPtr, usedLength);
+        }
+        
         keyPtr += usedLength;
         
         // We insert a separator with value 0 to separate the suffix from the object id
@@ -305,6 +315,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding,
         
         _minimalTokenLength = 2;
         _skipStopWords = YES;
+        _discardDuplicateTokens = NO;
         
         _path = path;
         _name = name;
@@ -373,12 +384,26 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding,
         [indexedObj.strings enumerateObjectsUsingBlock:^(NSString *obj, NSUInteger idx, BOOL *stop) {
             NSStringEncoding encoding = [obj fastestEncoding];
             NSParameterAssert([obj isKindOfClass:[NSString class]]);
+            
+            bloom_filter_s *bloomFilter = NULL;
+            if (_sself->_discardDuplicateTokens) {
+                size_t est_token_count = [obj maximumLengthOfBytesUsingEncoding:encoding];
+                size_t table_size = ceil((est_token_count * log(0.0001)) / log(1.0 / (pow(2.0, log(2.0)))));
+                size_t num_funcs = round(log(2.0) * table_size / est_token_count);
+                
+                bloomFilter = bloom_filter_new(table_size, jenkins_nocase_hash, num_funcs);
+            }
+            
             [obj enumerateSubstringsInRange:(NSRange){0, obj.length}
                                     options:NSStringEnumerationByWords|NSStringEnumerationLocalized
                                  usingBlock:^(NSString *substring, NSRange substringRange, NSRange enclosingRange, BOOL *stop) {
-                                     indexWordInObjectTextFragment(ident, encoding, _sself->_minimalTokenLength, _sself->_skipStopWords,
+                                     indexWordInObjectTextFragment(ident, encoding, bloomFilter,
+                                                                   _sself->_minimalTokenLength, _sself->_skipStopWords,
                                                                    substring, substringRange, idx, wb);
                                  }];
+            
+            if (_sself->_discardDuplicateTokens)
+                bloom_filter_free(bloomFilter);
         }];
         
         [wb setObject:newIndexedObjectStrings forKey:indexKeyForIndexedObject(ident, IndexedObjectKeyTypeStrings)];
@@ -435,12 +460,26 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding,
             
             NSStringEncoding encoding = [obj fastestEncoding];
             NSParameterAssert([obj isKindOfClass:[NSString class]]);
+            
+            bloom_filter_s *bloomFilter = NULL;
+            if (_sself->_discardDuplicateTokens) {
+                size_t est_token_count = [obj maximumLengthOfBytesUsingEncoding:encoding];
+                size_t table_size = ceil((est_token_count * log(0.0001)) / log(1.0 / (pow(2.0, log(2.0)))));
+                size_t num_funcs = round(log(2.0) * table_size / est_token_count);
+                
+                bloomFilter = bloom_filter_new(table_size, jenkins_nocase_hash, num_funcs);
+            }
+            
             [obj enumerateSubstringsInRange:(NSRange){0, obj.length}
                                     options:NSStringEnumerationByWords|NSStringEnumerationLocalized
                                  usingBlock:^(NSString *substring, NSRange substringRange, NSRange enclosingRange, BOOL *stop) {
-                                     indexWordInObjectTextFragment(ident, encoding, _sself->_minimalTokenLength, _sself->_skipStopWords,
+                                     indexWordInObjectTextFragment(ident, encoding, bloomFilter,
+                                                                   _sself->_minimalTokenLength, _sself->_skipStopWords,
                                                                    substring, substringRange, idx, wb);
                                  }];
+            
+            if (_sself->_discardDuplicateTokens)
+                bloom_filter_free(bloomFilter);
         }];
         
         if (previousStrings.count > indexedObj.strings.count) {

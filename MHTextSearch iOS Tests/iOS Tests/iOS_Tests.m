@@ -29,10 +29,6 @@
     nameIndex = [MHTextIndex textIndexInLibraryWithName:@"nameIndex"];
     [nameIndex deleteFromDisk];
     
-    textIndex = [MHTextIndex textIndexInLibraryWithName:@"textIndex"];
-    [textIndex deleteFromDisk];
-    
-    textIndex = [MHTextIndex textIndexInLibraryWithName:@"textIndex"];
     nameIndex = [MHTextIndex textIndexInLibraryWithName:@"nameIndex"];
 //    nameIndex.indexingQueue.maxConcurrentOperationCount = 1;
     
@@ -85,9 +81,20 @@
     [nameIndex.indexingQueue waitUntilAllOperationsAreFinished];
     NSLog(@"Indexing %lu names happened in %f seconds", (unsigned long)names.count, CFAbsoluteTimeGetCurrent() - t1);
 }
-- (BOOL)indexTextFiles {
+- (BOOL)indexTextFiles:(BOOL)uniquely {
     NSString *textsDirPath = [[[NSBundle bundleForClass:[iOS_Tests class]] bundlePath] stringByAppendingPathComponent:@"texts"];
     if (!textsDirPath) return NO;
+    
+    if (textIndex) {
+        [textIndex close];
+        [texts removeAllObjects];
+        [textPaths removeAllObjects];
+    }
+    textIndex = [MHTextIndex textIndexInLibraryWithName:@"textIndex"];
+    [textIndex deleteFromDisk];
+    
+    textIndex = [MHTextIndex textIndexInLibraryWithName:@"textIndex"];
+    textIndex.discardDuplicateTokens = uniquely;
     
     __weak iOS_Tests *_wself = self;
     [textIndex setIdentifier:^NSData *(id object){
@@ -117,6 +124,7 @@
     NSString *childPath;
     NSUInteger totalSize = 0, count = 0;
     CFAbsoluteTime t1 = CFAbsoluteTimeGetCurrent();
+    
     for (id child in enumerator) {
         if ([child hasSuffix:@".txt"]) {
             NSError *error;
@@ -133,7 +141,7 @@
                 count++;
                 totalSize += [textContent lengthOfBytesUsingEncoding:[textContent fastestEncoding]];
                 
-                if (totalSize > 50000) {
+                if (totalSize > 1500000) {
                     break;
                 }
             }
@@ -232,11 +240,20 @@
 
 
 - (void)testLargeTextIndexing {
-    if ([self indexTextFiles]) {
+    if ([self indexTextFiles:NO]) {
         CFAbsoluteTime t2 = CFAbsoluteTimeGetCurrent();
         NSArray *results = [textIndex searchResultForKeyword:@"hat" options:0];
-        NSLog(@"Search over %lu names happened in %f seconds", (unsigned long)texts.count, CFAbsoluteTimeGetCurrent() - t2);
-        XCTAssert(results.count == 1, @"The search should yield 1 result");
+        NSLog(@"Search over %lu texts (not discarding duplicate tokens) happened in %f seconds", (unsigned long)textPaths.count, CFAbsoluteTimeGetCurrent() - t2);
+        XCTAssert(results.count == 11, @"The search should yield 1 result");
+    };
+}
+
+- (void)testLargeTextIndexingUniquely {
+    if ([self indexTextFiles:YES]) {
+        CFAbsoluteTime t2 = CFAbsoluteTimeGetCurrent();
+        NSArray *results = [textIndex searchResultForKeyword:@"hat" options:0];
+        NSLog(@"Search over %lu texts (discarding duplicate tokens) happened in %f seconds", (unsigned long)textPaths.count, CFAbsoluteTimeGetCurrent() - t2);
+        XCTAssert(results.count == 11, @"The search should yield 1 result");
     };
 }
 

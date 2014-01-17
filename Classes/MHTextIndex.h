@@ -31,6 +31,7 @@ typedef struct {
 @property NSSortOptions sortOptions;
 @property NSUInteger minimalTokenLength;
 @property BOOL skipStopWords;
+@property BOOL discardDuplicateTokens;
 
 @property (strong, readonly) NSString * path;
 @property (strong, readonly) NSString * name;
