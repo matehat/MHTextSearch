@@ -169,6 +169,13 @@ There are a few knobs you can play with to make MHTextSeach better fit your need
   the number of letters that a token needs to be for it to be indexed. This also greatly minimizes
   the size of the index, as well as the indexing and searching time. It skips indexing single-letter
   words and the last letter of every word, when set to `2`.
+  
+- `MHTextIndex` uses a `NSOperationQueue` under the hood to coordinate indexing operations. It is 
+  exposed as a property named `indexingQueue`. You can thus set its `maxConcurrentOperationCount`
+  property to control how concurrent the indexing can be. Since the underlying database library
+  performing I/O is thread-safe, concurrency is not a problem.
+ 
+- Searching is also concurrent, but it uses a `dispatch_queue_t` (not yet exposed or tunable).
 
 The following graphs show the indexing and searching time (in seconds), as a function of the size
 of text indexed, ranging from 500 KB to about 10 MB. The benchmarks were run on an iPhone 5.
