@@ -39,7 +39,7 @@ uniquely refer to this object.
 
 ```objective-c 
 [index setIdentifier:^NSData *(MyCustomObject *object){
-    return object.id; // a NSData instance
+    return object.indexID; // a NSData instance
 }];
 ```
 
