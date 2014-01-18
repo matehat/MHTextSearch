@@ -26,12 +26,6 @@
 - (void)setUp {
     [super setUp];
     
-    nameIndex = [MHTextIndex textIndexInLibraryWithName:@"nameIndex"];
-    [nameIndex deleteFromDisk];
-    
-    nameIndex = [MHTextIndex textIndexInLibraryWithName:@"nameIndex"];
-//    nameIndex.indexingQueue.maxConcurrentOperationCount = 1;
-    
     texts = [NSMutableArray arrayWithCapacity:2000];
     textPaths = [NSMutableArray arrayWithCapacity:2000];
 }
@@ -42,6 +36,14 @@
 }
 
 - (void)indexAllNames {
+    static NSUInteger dbInstanceNum = 0;
+    
+    NSString *dbName = [NSString stringWithFormat:@"nameIndex-%lu", (unsigned long)dbInstanceNum++];
+    nameIndex = [MHTextIndex textIndexInLibraryWithName:dbName];
+    [nameIndex deleteFromDisk];
+    
+    nameIndex = [MHTextIndex textIndexInLibraryWithName:dbName];
+    
     __weak iOS_Tests *_wself = self;
     
     NSString *path = [[NSBundle bundleForClass:[iOS_Tests class]] pathForResource:@"Names" ofType:@"txt"];
@@ -90,10 +92,11 @@
         [texts removeAllObjects];
         [textPaths removeAllObjects];
     }
-    textIndex = [MHTextIndex textIndexInLibraryWithName:@"textIndex"];
+    NSString *dbName = [NSString stringWithFormat:@"textIndex-%i", uniquely];
+    textIndex = [MHTextIndex textIndexInLibraryWithName:dbName];
     [textIndex deleteFromDisk];
     
-    textIndex = [MHTextIndex textIndexInLibraryWithName:@"textIndex"];
+    textIndex = [MHTextIndex textIndexInLibraryWithName:dbName];
     textIndex.discardDuplicateTokens = uniquely;
     
     __weak iOS_Tests *_wself = self;

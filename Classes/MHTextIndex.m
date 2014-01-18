@@ -1,6 +1,6 @@
 //
 //  MHTextIndex.m
-//  
+//
 //
 //  Created by Mathieu D'Amours on 1/14/14.
 //
@@ -40,10 +40,10 @@ typedef enum IndexObjectKeyType : NSUInteger {
 NSData *indexKeyForIndexedObject(NSData *ident, IndexedObjectKeyType type) {
     size_t size = ident.length + uint64_sz + sizeof(type);
     char *key = malloc(size);
-    uint64_t *typePtr = key;
+    uint64_t *typePtr = (uint64_t *)key;
     *typePtr = objectPrefix;
     [ident getBytes:key + uint64_sz];
-    IndexedObjectKeyType *keyType = key + uint64_sz + ident.length;
+    IndexedObjectKeyType *keyType = (IndexedObjectKeyType *)(key + uint64_sz + ident.length);
     *keyType = type;
     return [NSData dataWithBytesNoCopy:key length:size];
 }
@@ -52,7 +52,7 @@ NSData *indexKeyForIndexedObject(NSData *ident, IndexedObjectKeyType type) {
 NSData *indexKeyPrefixForObjectWords(NSData *ident) {
     size_t size = ident.length + uint64_sz;
     char *key = malloc(size);
-    uint64_t *typePtr = key;
+    uint64_t *typePtr = (uint64_t *)key;
     *typePtr = reversePrefix;
     [ident getBytes:key + uint64_sz];
     return [NSData dataWithBytesNoCopy:key length:size];
@@ -65,14 +65,14 @@ NSData *indexKeyPrefixForObjectStringAtIndex(NSData *ident, NSUInteger idx) {
     char *key = malloc(size);
     char *keyPtr = key;
     
-    uint64_t *typePtr = key;
+    uint64_t *typePtr = (uint64_t *)key;
     *typePtr = reversePrefix;
     keyPtr += uint64_sz;
     
     [ident getBytes:key + uint64_sz];
     keyPtr += ident.length;
     
-    uint32_t *positionPtr = keyPtr;
+    uint32_t *positionPtr = (uint32_t *)keyPtr;
     positionPtr[0] = idx;
     
     return [NSData dataWithBytesNoCopy:key length:size];
@@ -84,7 +84,7 @@ NSData *indexKeyPrefixForToken(NSString *token) {
     char *key = malloc(size);
     char *keyPtr = key;
     
-    uint64_t *typePtr = key;
+    uint64_t *typePtr = (uint64_t *)key;
     *typePtr = directPrefix;
     keyPtr += uint64_sz;
     
@@ -102,19 +102,16 @@ MHResultToken unpackTokenData(NSData *indexKey, NSData *rangeData) {
     MHResultToken entry;
     [rangeData getBytes:&entry.tokenRange];
     const char * key = indexKey.bytes + uint64_sz;
-    
-    char * keyPtr = key;
+    const char * keyPtr = key;
     
     NSUInteger zeroChars = 0;
-    NSUInteger idLength = 0;
     uint32_t *indx;
     
-    BOOL sep = NO;
     while (keyPtr < key + indexKey.length) {
         if (*keyPtr == 0) {
             zeroChars += 1;
             if (zeroChars == uint32_sz) {
-                indx = keyPtr + uint32_sz;
+                indx = (uint32_t *)(keyPtr + uint32_sz);
                 entry.stringIndex = *indx;
                 
                 indx += 1;
@@ -140,14 +137,14 @@ MHResultToken unpackTokenData(NSData *indexKey, NSData *rangeData) {
 void enumerateKeysFromReverseIndex(NSData *keysData, void(^enumerator)(NSData *indexKey)) {
     if (keysData.length == 0) return;
     
-    char *data = [keysData bytes];
-    char *dataPtr = data;
+    const char *data = [keysData bytes];
+    const char *dataPtr = data;
     uint64_t *keyLength;
     
     while (dataPtr < (data + keysData.length)) {
-        keyLength = dataPtr;
+        keyLength = (uint64_t *)dataPtr;
         dataPtr += uint64_sz;
-        enumerator([NSData dataWithBytesNoCopy:dataPtr length:*keyLength freeWhenDone:NO]);
+        enumerator([NSData dataWithBytesNoCopy:(void *)dataPtr length:(NSUInteger)*keyLength freeWhenDone:NO]);
         dataPtr += *keyLength;
     }
 }
@@ -193,11 +190,11 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
     uint32_t * indexPositionPtr;
     
     // We allocate a buffer in memory for holding the largest word suffix key
-    char * key = malloc(uint64_sz + strLength + uint32_sz * 4 + ident.length);
+    char * key = malloc(uint64_sz + (size_t)strLength + uint32_sz * 4 + (size_t)ident.length);
     
     // We set a uint64 of value 1 at the start of the key (prefix for "direct" type)
     // This will be shared among all generated keys
-    indexPrefixPtr = key;
+    indexPrefixPtr = (uint64_t *)key;
     *indexPrefixPtr = directPrefix;
     
     char * keyPtr = key + uint64_sz;
@@ -215,7 +212,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
         
         // We copy the bytes for the suffix substring into the suffix key
         [indexedString getBytes:keyPtr
-                      maxLength:strLength
+                      maxLength:(NSUInteger)strLength
                      usedLength:&usedLength
                        encoding:encoding
                         options:NSStringEncodingConversionAllowLossy
@@ -232,7 +229,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
         keyPtr += usedLength;
         
         // We insert a separator with value 0 to separate the suffix from the object id
-        indexPositionPtr = keyPtr;
+        indexPositionPtr = (uint32_t *)keyPtr;
         indexPositionPtr[0] = 0;
         
         // ... and set the position of the suffix in the indexed object
@@ -261,7 +258,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
         [keys appendBytes:&keyLength length:uint64_sz];
         
         // ... and append the key bytes, without the leading type 0
-        [keys appendBytes:key length:keyLength];
+        [keys appendBytes:key length:(NSUInteger)keyLength];
     }
     
     // Finally, for each indexed word, we need to insert a reversed index entry for bookkeeping
@@ -270,7 +267,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
     keyPtr = key;
     
     // This time we set the prefix type to 1 ("reverse" type)
-    indexPrefixPtr = keyPtr;
+    indexPrefixPtr = (uint64_t *)keyPtr;
     *indexPrefixPtr = reversePrefix;
     keyPtr += uint64_sz;
     
@@ -279,13 +276,13 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
     keyPtr += ident.length;
     
     // And set the position of the indexed word as a 2 unsigned 32-bit integer
-    indexPositionPtr = keyPtr;
+    indexPositionPtr = (uint32_t *)keyPtr;
     indexPositionPtr[0] = (uint32_t)stringIdx;                     // The string index
     indexPositionPtr[1] = (uint32_t)wordSubstringRange.location;   // The position of the word in the string
     
     [wb setObject:keys
-            forKey:[NSData dataWithBytesNoCopy:key
-                                        length:keyLength]];
+           forKey:[NSData dataWithBytesNoCopy:key
+                                       length:(NSUInteger)keyLength]];
 }
 
 @implementation MHTextIndex {
@@ -544,7 +541,11 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
                                        usingBlock:^(LevelDBKey *key, NSData *rangeData, BOOL*stop){
                                            NSData *fullKey = NSDataFromLevelDBKey(key);
                                            MHResultToken indexEntry = unpackTokenData(fullKey, rangeData);
-                                           NSData *identifier = [NSData dataWithBytesNoCopy:indexEntry.identifier length:indexEntry.length freeWhenDone:NO];
+                                           
+                                           NSData *identifier = [NSData dataWithBytesNoCopy:(void *)indexEntry.identifier
+                                                                                     length:indexEntry.length
+                                                                               freeWhenDone:NO];
+                                           
                                            MHSearchResultItem *resultItem = searchResult[identifier];
                                            if (!resultItem) {
                                                resultItem = searchResult[identifier] = [MHSearchResultItem searchResultItemWithIdentifier:identifier
@@ -562,10 +563,10 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
         }];
         
         result = [[searchResult allValues] sortedArrayWithOptions:_sortOptions
-                               usingComparator:^NSComparisonResult(id obj1, id obj2) {
-                                   return [self compareResultItem:obj1 withItem:obj2
-                                                         reversed:(options & NSEnumerationReverse) == NSEnumerationReverse];
-                               }];
+                                                  usingComparator:^NSComparisonResult(id obj1, id obj2) {
+                                                      return [self compareResultItem:obj1 withItem:obj2
+                                                                            reversed:(options & NSEnumerationReverse) == NSEnumerationReverse];
+                                                  }];
     });
     return result;
 }
