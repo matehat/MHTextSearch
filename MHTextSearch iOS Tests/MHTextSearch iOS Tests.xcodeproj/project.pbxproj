@@ -33,6 +33,7 @@
 		361D0CED83EA416F99714314 /* Pods.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Pods.xcconfig; path = Pods/Pods.xcconfig; sourceTree = "<group>"; };
 		82E0C388E98A424894836C27 /* libPods.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libPods.a; sourceTree = BUILT_PRODUCTS_DIR; };
 		D038FA8D1886D30700C114DE /* texts */ = {isa = PBXFileReference; lastKnownFileType = folder; path = texts; sourceTree = "<group>"; };
+		D0A4E0F4188ADECB00CA2388 /* MHTextSearch.podspec */ = {isa = PBXFileReference; lastKnownFileType = text; name = MHTextSearch.podspec; path = ../MHTextSearch.podspec; sourceTree = "<group>"; };
 		D0CC9A37188605EE00203AC3 /* iOS Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "iOS Tests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		D0CC9A3A188605EE00203AC3 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
 		D0CC9A3C188605EE00203AC3 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
@@ -89,6 +90,7 @@
 		D0CC9A2C188605DB00203AC3 = {
 			isa = PBXGroup;
 			children = (
+				D0A4E0F4188ADECB00CA2388 /* MHTextSearch.podspec */,
 				D038FA8D1886D30700C114DE /* texts */,
 				D0CC9A87188652CA00203AC3 /* Classes */,
 				D0CC9A40188605EE00203AC3 /* iOS Tests */,
