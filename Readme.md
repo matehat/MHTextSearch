@@ -1,6 +1,6 @@
 ## MHTextSearch
 
-A fast & minimalist embedded full-text indexing library, written in Objective-C, built on top of [Objective-LevelDB][2]. *It is still in development, obviously. You're welcomed to contribute if you find the project interesting!*
+A fast & minimal embedded full-text indexing library, written in Objective-C, built on top of [Objective-LevelDB][2]. *It is still in development, obviously. You're welcomed to contribute if you find the project interesting!*
 
 ### Installation
 
@@ -8,7 +8,7 @@ By far, the easiest way to integrate this library in your project is by using [C
 
 1. Have [Cocoapods][1] installed, if you don't already
 
-2. In your Podfile, add the line (until it has been added to cocoapods main repo)
+2. In your Podfile, add the line
 
         pod 'MHTextSearch'
 
