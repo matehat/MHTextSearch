@@ -101,17 +101,18 @@ NSData *indexKeyPrefixForToken(NSString *token) {
 MHResultToken unpackTokenData(NSData *indexKey, NSData *rangeData) {
     MHResultToken entry;
     [rangeData getBytes:&entry.tokenRange];
-    const char * key = indexKey.bytes + uint64_sz;
-    const char * keyPtr = key;
+    const unsigned char * key = indexKey.bytes + uint64_sz;
+    const unsigned char * keyPtr = key;
     
-    NSUInteger zeroChars = 0;
+    NSUInteger sepChars = 0;
     uint32_t *indx;
     
     while (keyPtr < key + indexKey.length) {
-        if (*keyPtr == 0) {
-            zeroChars += 1;
-            if (zeroChars == uint32_sz) {
-                indx = (uint32_t *)(keyPtr + uint32_sz);
+        if (*keyPtr == 255) {
+            sepChars += 1;
+            keyPtr += 1;
+            if (sepChars == uint32_sz) {
+                indx = (uint32_t *)(keyPtr);
                 entry.stringIndex = *indx;
                 
                 indx += 1;
@@ -120,13 +121,14 @@ MHResultToken unpackTokenData(NSData *indexKey, NSData *rangeData) {
                 indx += 1;
                 entry.tokenIndex = *indx;
                 
-                keyPtr += 4 * uint32_sz;
+                keyPtr += 3 * uint32_sz;
                 entry.identifier = keyPtr;
                 entry.length = (key + indexKey.length - uint64_sz) - keyPtr;
                 break;
             }
         } else {
             keyPtr += 1;
+            sepChars = 0;
         }
     }
     
@@ -137,8 +139,8 @@ MHResultToken unpackTokenData(NSData *indexKey, NSData *rangeData) {
 void enumerateKeysFromReverseIndex(NSData *keysData, void(^enumerator)(NSData *indexKey)) {
     if (keysData.length == 0) return;
     
-    const char *data = [keysData bytes];
-    const char *dataPtr = data;
+    const unsigned char *data = [keysData bytes];
+    const unsigned char *dataPtr = data;
     uint64_t *keyLength;
     
     while (dataPtr < (data + keysData.length)) {
@@ -157,6 +159,7 @@ void removeIndexForStringInObject(NSData *ident, NSUInteger stringIdx, LDBWriteb
                                     andPrefix:indexKeyPrefixForObjectStringAtIndex(ident, stringIdx)
                                    usingBlock:^(LevelDBKey * key, NSData *keysData, BOOL *stop){
                                        enumerateKeysFromReverseIndex(keysData, ^(NSData *tokenKey){
+                                           NSLog(@"Exists? %i", [snapshot objectExistsForKey:tokenKey]);
                                            [wb removeObjectForKey:tokenKey];
                                        });
                                    }];
@@ -169,6 +172,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
     NSMutableData *keys = [NSMutableData data];
     NSString *indexedString = [wordSubstring stringByFoldingWithOptions:stringFoldingOptions
                                                                  locale:[NSLocale currentLocale]];
+    encoding = [indexedString fastestEncoding];
     
     static NSSet *stopWordList;
     static dispatch_once_t onceToken;
@@ -184,7 +188,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
     globalRange = wordSubstringRange;
     
     uint64_t keyLength;
-    uint64_t strLength = [indexedString lengthOfBytesUsingEncoding:encoding];
+    uint64_t strLength = [indexedString maximumLengthOfBytesUsingEncoding:encoding];
     NSUInteger usedLength;
     uint64_t * indexPrefixPtr;
     uint32_t * indexPositionPtr;
@@ -230,7 +234,10 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
         
         // We insert a separator with value 0 to separate the suffix from the object id
         indexPositionPtr = (uint32_t *)keyPtr;
-        indexPositionPtr[0] = 0;
+        unsigned char *separator = keyPtr;
+        for (int i = 0; i<4; i++) {
+            separator[i] = 255;
+        }
         
         // ... and set the position of the suffix in the indexed object
         indexPositionPtr[1] = (uint32_t)stringIdx;
@@ -331,13 +338,27 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
                                reversed:(BOOL)reversed {
     
     CGFloat diff = item1.weight - item2.weight;
-    NSInteger countDiff = item1.resultTokens.count - item2.resultTokens.count;
+    NSComparisonResult greater = reversed ? NSOrderedDescending : NSOrderedAscending,
+    smaller = reversed ? NSOrderedAscending : NSOrderedDescending;
     
-    if (diff > 0 || (diff == 0 && countDiff > 0)) {
-        return reversed ? NSOrderedDescending : NSOrderedAscending;
-    } else if (diff < 0 || (diff == 0 && countDiff < 0)) {
-        return reversed ? NSOrderedAscending : NSOrderedDescending;
-    } else {
+    if (diff > 0) return greater;
+    else if (diff < 0) return smaller;
+    else {
+        
+        NSIndexPath *ip1, *ip2;
+        for (int i=0; i<item1.resultTokens.count; i++) {
+            ip1 = item1.resultTokens[i];
+            ip2 = item2.resultTokens[i];
+            diff = (CGFloat)(ip1.mh_string + ip1.mh_token + ip1.mh_word) - (CGFloat)(ip2.mh_string + ip2.mh_token + ip2.mh_word);
+            
+            if (diff < 0) return greater;
+            else if (diff > 0) return smaller;
+        }
+        
+        diff = item1.resultTokens.count - item2.resultTokens.count;
+        if (diff > 0) return greater;
+        else if (diff < 0) return smaller;
+        
         return NSOrderedSame;
     }
 }
