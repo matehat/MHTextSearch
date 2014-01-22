@@ -159,6 +159,29 @@
     return YES;
 }
 
+- (void)testNameWithAccents {
+    MHTextIndex *index = [MHTextIndex textIndexInLibraryWithName:@"testNameWithAccents"];
+    [index deleteFromDisk];
+    
+    index = [MHTextIndex textIndexInLibraryWithName:@"testNameWithAccents"];
+    NSData *data = [@"100001334281213" dataUsingEncoding:NSUTF8StringEncoding];
+    [index setIdentifier:^id(id obj) { return data; }];
+    [index setIndexer:^MHIndexedObject *(id obj, id key){
+        MHIndexedObject *idx = [MHIndexedObject new];
+        idx.strings = @[@"Marc-André Jenkins"];
+        idx.context = @{@"name": idx.strings[0]};
+        return idx;
+    }];
+    [[index indexObject:[NSNull null]] waitUntilFinished];
+    
+    [index enumerateResultForKeyword:@"a"
+                             options:0
+                           withBlock:^(MHSearchResultItem *resultItem, NSUInteger rank, NSUInteger count, BOOL *stop) {
+                               XCTAssertNotNil(resultItem.context, @"Context should be found");
+                               XCTAssertEqualObjects(resultItem.context[@"name"], @"Marc-André Jenkins", @"Name should be correct");
+                           }];
+}
+
 - (void)testNameMatching {
     [self indexAllNames];
     
@@ -206,7 +229,7 @@
     }];
     [nameIndex.indexingQueue waitUntilAllOperationsAreFinished];
     
-    XCTAssertEqual([nameIndex searchResultForKeyword:@"th" options:0].count, 0,
+    XCTAssertEqual((NSUInteger)[nameIndex searchResultForKeyword:@"th" options:0].count, (NSUInteger)0,
                    @"After removing every result item of a search from the index, the same search should yield nothing.");
 }
 
