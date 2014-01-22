@@ -79,7 +79,7 @@ NSData *indexKeyPrefixForObjectStringAtIndex(NSData *ident, NSUInteger idx) {
 }
 
 NSData *indexKeyPrefixForToken(NSString *token) {
-    NSStringEncoding encoding = [token fastestEncoding];
+    NSStringEncoding encoding = [token smallestEncoding];
     size_t size = [token lengthOfBytesUsingEncoding:encoding] + uint64_sz;
     char *key = malloc(size);
     char *keyPtr = key;
@@ -171,7 +171,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
     NSMutableData *keys = [NSMutableData data];
     NSString *indexedString = [wordSubstring stringByFoldingWithOptions:stringFoldingOptions
                                                                  locale:[NSLocale currentLocale]];
-    encoding = [indexedString fastestEncoding];
+    encoding = [indexedString smallestEncoding];
     
     static NSSet *stopWordList;
     static dispatch_once_t onceToken;
