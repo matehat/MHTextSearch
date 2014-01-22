@@ -122,7 +122,7 @@ MHResultToken unpackTokenData(NSData *indexKey, NSData *rangeData) {
                 entry.tokenIndex = *indx;
                 
                 keyPtr += 3 * uint32_sz;
-                entry.identifier = keyPtr;
+                entry.identifier = (char *)keyPtr;
                 entry.length = (key + indexKey.length - uint64_sz) - keyPtr;
                 break;
             }
@@ -159,7 +159,6 @@ void removeIndexForStringInObject(NSData *ident, NSUInteger stringIdx, LDBWriteb
                                     andPrefix:indexKeyPrefixForObjectStringAtIndex(ident, stringIdx)
                                    usingBlock:^(LevelDBKey * key, NSData *keysData, BOOL *stop){
                                        enumerateKeysFromReverseIndex(keysData, ^(NSData *tokenKey){
-                                           NSLog(@"Exists? %i", [snapshot objectExistsForKey:tokenKey]);
                                            [wb removeObjectForKey:tokenKey];
                                        });
                                    }];
@@ -234,7 +233,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
         
         // We insert a separator with value 0 to separate the suffix from the object id
         indexPositionPtr = (uint32_t *)keyPtr;
-        unsigned char *separator = keyPtr;
+        unsigned char *separator = (unsigned char *)keyPtr;
         for (int i = 0; i<4; i++) {
             separator[i] = 255;
         }
@@ -346,7 +345,10 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
     else {
         
         NSIndexPath *ip1, *ip2;
-        for (int i=0; i<item1.resultTokens.count; i++) {
+        for (int i=0;
+             i < item1.resultTokens.count && i < item2.resultTokens.count;
+             i++) {
+            
             ip1 = item1.resultTokens[i];
             ip2 = item2.resultTokens[i];
             diff = (CGFloat)(ip1.mh_string + ip1.mh_token + ip1.mh_word) - (CGFloat)(ip2.mh_string + ip2.mh_token + ip2.mh_word);
