@@ -21,7 +21,7 @@
 
 + (instancetype) searchResultItemWithIdentifier:(NSData *)identifier
                                         keyword:(NSString *)keyword
-                                   objectGetter:(MHObjectGetter)getter;
+                                   objectGetter:(id(^)(NSData *identifier))getter;
 
 - (void) addResultToken:(MHResultToken)token;
 - (NSRange) rangeOfTokenInString:(NSIndexPath *)token;

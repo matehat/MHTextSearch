@@ -12,10 +12,6 @@
 
 @class MHSearchResultItem;
 
-typedef MHIndexedObject *(^MHIndexerBlock)(id object, NSData *identifier);
-typedef NSData *(^MHIdentifyBlock)(id object);
-typedef id (^MHObjectGetter)(NSData *identifier);
-
 typedef struct {
     uint32_t stringIndex;
     uint32_t wordIndex;
@@ -38,9 +34,9 @@ typedef struct {
 
 @property (strong, readonly) NSOperationQueue * indexingQueue;
 
-@property (strong, nonatomic) MHIndexerBlock indexer;
-@property (strong, nonatomic) MHIdentifyBlock identifier;
-@property (strong, nonatomic) MHObjectGetter objectGetter;
+@property (strong, nonatomic) MHIndexedObject *(^indexer)(id object, NSData *identifier);
+@property (strong, nonatomic) NSData *(^identifier)(id object);
+@property (strong, nonatomic) id (^objectGetter)(NSData *identifier);
 
 + (instancetype) textIndexWithName:(NSString *)name path:(NSString *)path options:(LevelDBOptions)options;
 + (instancetype) textIndexInLibraryWithName:(NSString *)name;

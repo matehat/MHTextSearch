@@ -10,7 +10,7 @@
 
 @implementation MHSearchResultItem {
     NSMutableArray *_resultTokens;
-    __weak MHObjectGetter _getter;
+    __weak id (^_getter)(NSData *identifier);
     __strong id _object;
     NSUInteger _length;
 }
@@ -25,7 +25,7 @@
 
 + (instancetype)searchResultItemWithIdentifier:(NSData *)identifier
                                        keyword:(NSString *)keyword
-                                  objectGetter:(MHObjectGetter)getter {
+                                  objectGetter:(id(^)(NSData *identifier))getter {
     
     MHSearchResultItem *item = [[self alloc] init];
     item->_length = keyword.length;
