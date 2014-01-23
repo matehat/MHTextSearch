@@ -294,6 +294,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
 @implementation MHTextIndex {
     LevelDB *_db;
     dispatch_queue_t _searchQueue;
+    LevelDBOptions _options;
 }
 
 + (instancetype)textIndexInLibraryWithName:(NSString *)name {
@@ -322,14 +323,34 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
         
         _path = path;
         _name = name;
+        _options = options;
         
         _sortOptions = NSSortConcurrent | NSSortStable;
     }
     return self;
 }
 
-- (void)dealloc {
-    [_db close];
+- (void)dealloc { [_db close]; }
+
+- (void)close {
+    @synchronized(self) {
+        [_db close];
+        _db = nil;
+    }
+}
+- (void)deleteFromDisk {
+    @synchronized(self) {
+        [_db deleteDatabaseFromDisk];
+        _db = nil;
+    }
+}
+
+- (void)reopen {
+    @synchronized(self) {
+        if (!_db) {
+            _db = [[LevelDB alloc] initWithPath:_path name:_name andOptions:_options];
+        }
+    }
 }
 
 - (NSComparisonResult)compareResultItem:(MHSearchResultItem *)item1
@@ -603,19 +624,6 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
         item.rank = idx;
         block(item, idx, resultSet.count, stop);
     }];
-}
-
-- (void)close {
-    @synchronized(self) {
-        [_db close];
-        _db = nil;
-    }
-}
-- (void)deleteFromDisk {
-    @synchronized(self) {
-        [_db deleteDatabaseFromDisk];
-        _db = nil;
-    }
 }
 
 @end

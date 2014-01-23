@@ -56,6 +56,7 @@ typedef struct {
 - (MHIndexedObject *) getIndexInfoForObject:(id)object;
 - (MHIndexedObject *) getIndexInfoForObject:(id)object andIdentifier:(NSData *)identifier;
 
+- (void) reopen;
 - (void) close;
 - (void) deleteFromDisk;
 
