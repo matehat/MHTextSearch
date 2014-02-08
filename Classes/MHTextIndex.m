@@ -304,7 +304,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
     return [self textIndexWithName:name path:dbPath options:[LevelDB makeOptions]];
 }
 + (instancetype)textIndexWithName:(NSString *)name path:(NSString *)path options:(LevelDBOptions)options {
-    return [[MHTextIndex alloc] initWithName:name path:path options:options];
+    return [[self alloc] initWithName:name path:path options:options];
 }
 - (instancetype)initWithName:(NSString *)name path:(NSString *)path options:(LevelDBOptions)options {
     self = [super init];
