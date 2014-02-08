@@ -151,9 +151,8 @@ this project:
     if (self.indexID.length) {
         [textindex updateIndexForObject:self.indexID];
     } else {
-        __block NSData *indexID = [[self class] createIndexID];
+        self.indexID = [[self class] createIndexID];
         [textindex indexObject:self.indexID];
-        self.indexID = indexID;
     }
 }
 ```

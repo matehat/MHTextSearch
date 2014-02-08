@@ -300,7 +300,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
     return [self textIndexWithName:name path:dbPath options:[LevelDB makeOptions]];
 }
 + (instancetype)textIndexWithName:(NSString *)name path:(NSString *)path options:(LevelDBOptions)options {
-    return [[MHTextIndex alloc] initWithName:name path:path options:options];
+    return [[self alloc] initWithName:name path:path options:options];
 }
 - (instancetype)initWithName:(NSString *)name path:(NSString *)path options:(LevelDBOptions)options {
     self = [super init];
@@ -354,8 +354,15 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
                                reversed:(BOOL)reversed {
     
     CGFloat diff = item1.weight - item2.weight;
-    NSComparisonResult greater = reversed ? NSOrderedDescending : NSOrderedAscending,
-    smaller = reversed ? NSOrderedAscending : NSOrderedDescending;
+    
+    /* The natural way of expressing a search result is to show results with greater
+     * weight first... */
+    NSComparisonResult
+        // So those with greater weight, unless reversed, need to come first, thus be indicated as coming "before" (ascending)
+        greater = reversed ? NSOrderedDescending : NSOrderedAscending,
+    
+        // and those with smaller weight need to be indicated as coming "after" (descending)
+        smaller = reversed ? NSOrderedAscending : NSOrderedDescending;
     
     if (diff > 0) return greater;
     else if (diff < 0) return smaller;
