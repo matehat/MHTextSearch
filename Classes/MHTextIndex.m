@@ -291,11 +291,7 @@ void indexWordInObjectTextFragment(NSData *ident, NSStringEncoding encoding, blo
                                        length:(NSUInteger)keyLength]];
 }
 
-@implementation MHTextIndex {
-    LevelDB *_db;
-    dispatch_queue_t _searchQueue;
-    LevelDBOptions _options;
-}
+@implementation MHTextIndex
 
 + (instancetype)textIndexInLibraryWithName:(NSString *)name {
     NSArray *paths = NSSearchPathForDirectoriesInDomains(NSLibraryDirectory, NSUserDomainMask, YES);

@@ -22,7 +22,11 @@ typedef struct {
     size_t length;
 } MHResultToken;
 
-@interface MHTextIndex : NSObject
+@interface MHTextIndex : NSObject {
+    LevelDB *_db;
+    dispatch_queue_t _searchQueue;
+    LevelDBOptions _options;
+}
 
 @property NSSortOptions sortOptions;
 @property NSUInteger minimalTokenLength;
