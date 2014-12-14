@@ -31,7 +31,7 @@ You can tell a `MHTextIndex` instance to index your objects (any object)
 ```objective-c
 [index indexObject:anyObjectYouWant];
 [index updateIndexForObject:anotherPreviousIndexedObject];
-[index deleteIndexForObject:anotherPreviousIndexedObject];
+[index removeIndexForObject:anotherPreviousIndexedObject];
 ```
 
 But for this to work, you need to tell us what *identifier* as `NSData *` can be used to 
