@@ -6,7 +6,7 @@ A fast & minimal embedded full-text indexing library, written in Objective-C, bu
 
 By far, the easiest way to integrate this library in your project is by using [CocoaPods][1].
 
-1. Have [Cocoapods][1] installed, if you don't already
+1. Have [CocoaPods][1] installed, if you don't already
 
 2. In your Podfile, add the line
 
